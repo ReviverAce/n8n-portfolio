@@ -1,0 +1,736 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.040Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "dTGTtO0BzAduc00d",
+    "workflow_name": "[PROD] Client-Alpha - RAG",
+    "active": true,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-09T13:33:56.788Z",
+    "createdAt": "2026-01-22T16:33:14.320Z",
+    "id": "dTGTtO0BzAduc00d",
+    "name": "[PROD] Client-Alpha - RAG",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "options": {
+            "systemMessage": "=You are a financial assistant that helps answer questions about invoices stored in a Postgres database.\n\nDATABASE SCHEMA:\nThe \"Invoices\" table contains invoice line items (each row = one item/position on an invoice) with the following columns:\n\n\"Id\" (int8): row identifier\n\n\"numer faktury\" (text): invoice number (grouping key)\n\n\"nazwa sprzedawcy\" (text): seller name\n\n\"data wystawienia\" (date): invoice issue date\n\n\"data sprzedaży\" (date): sale date\n\n\"termin płatności\" (text): payment term / due date (stored as text)\n\n\"forma płatności\" (text): payment method\n\n\"nazwa towaru\" (text): item/service name\n\n\"ilość towaru\" (numeric): quantity\n\n\"cena towaru\" (numeric): unit price\n\n\"link do dokumentu\" (text): document link (may be null)\n\nIMPORTANT CALCULATION RULE:\nThere is no stored line total column. Line value must be calculated as:\n\"ilość towaru\" * \"cena towaru\"\nInvoice net value must be calculated as:\nSUM(\"ilość towaru\" * \"cena towaru\") grouped by \"numer faktury\".\n\nAVAILABLE TOOLS:\n\nQuery Document Rows: Executes SQL queries on the \"Invoices\" table\n\nQUERY STRATEGY:\n\nFor aggregation questions (sum, average, count, max, min), use SQL via Query Document Rows\n\nFor specific invoice lookups, prefer filtering by \"numer faktury\" when provided\n\nFor exploratory questions (\"show me recent invoices\"), use SQL with appropriate ORDER BY and LIMIT clauses\n\nFor fuzzy matching of \"nazwa sprzedawcy\" or \"nazwa towaru\", use case-insensitive matching with ILIKE\n\nCRITICAL PRODUCT NAME SEARCH RULE: When a user asks about a product using a partial or colloquial name (e.g., \"rura\", \"kabel\", \"złączka\"), ALWAYS use ILIKE '%keyword%' to search broadly in \"nazwa towaru\". Do NOT require the exact full product name. If the search returns multiple different product types (e.g., \"Rura osłonowa PCV RL 28\", \"Rura karbowana 32mm\"), present all found product types to the user with their quantities/values, or ask the user which specific product they mean. Never refuse to query just because the user didn't provide the full product name.\n\nCRITICAL FILTERING PRIORITY:\n\nIf the user provides \"numer faktury\", filter ONLY by \"numer faktury\" (do NOT add \"nazwa sprzedawcy\" or other filters unless explicitly requested).\n\nRESPONSE GUIDELINES:\n\nAlways show your work: explain what query you're running and why\n\nFormat currency amounts with PLN and two decimal places\n\nWhen showing multiple results, present them in a clear, organized format\n\nAlways answer in polish.\n\nIf no results are found, clearly state this — never fabricate data\n\nCRITICAL: When a user mentions a month without a year, ALWAYS use the current year. For example, if today is {{ $now.format('YYYY-MM-DD') }}, then \"August\" means \"August {{ $now.year }}\"\n\nIf a question is ambiguous (e.g., \"recent\" without a timeframe), ask for clarification or state your assumptions\n\nCurrent date: {{ $now.format('YYYY-MM-DD') }}\nCurrent year: {{ $now.year }}\n\nCRITICAL: When writing SQL queries, write them as a SINGLE LINE with spaces between clauses. Do NOT include line breaks or \\n characters."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          -312,
+          -176
+        ],
+        "id": "acb64d5c-bca1-4c46-9484-98fa3d766fd0",
+        "name": "AI Agent"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "gpt-4o",
+            "mode": "list",
+            "cachedResultName": "gpt-4o"
+          },
+          "builtInTools": {},
+          "options": {
+            "temperature": 0.1
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.3,
+        "position": [
+          -368,
+          48
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "OpenAI Chat Model1",
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "[AGENCY] OPENAI - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {},
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "position": [
+          -240,
+          48
+        ],
+        "id": "dec33341-6fa6-422a-be3f-3f3865107675",
+        "name": "Simple Memory"
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "=Run a SQL query on the \"Invoices\" table. Use this tool to query invoice line items (each row = one line item/position on an invoice) with standard PostgreSQL syntax.\n\nThe \"Invoices\" table contains the following columns:\n\n\"Id\" (int8): row identifier\n\n\"numer faktury\" (text): invoice number (grouping key)\n\n\"nazwa sprzedawcy\" (text): seller name\n\n\"data wystawienia\" (date): invoice issue date\n\n\"data sprzedaży\" (date): sale date\n\n\"termin płatności\" (text): payment due date / payment term (stored as text)\n\n\"forma płatności\" (text): payment method\n\n\"nazwa towaru\" (text): item/service name\n\n\"ilość towaru\" (numeric): quantity\n\n\"cena towaru\" (numeric): unit price\n\n\"link do dokumentu\" (text): document link (may be null)\n\nIMPORTANT CALCULATION RULE:\nThere is no stored line total column. Line value must be calculated as:\n\"ilość towaru\" * \"cena towaru\"\nInvoice net value must be calculated as:\nSUM(\"ilość towaru\" * \"cena towaru\") grouped by \"numer faktury\".\n\nQUERY EXAMPLES (write queries on single lines or with proper line breaks):\n\nGet total spending (all rows):\nSELECT SUM(\"ilość towaru\" * \"cena towaru\") AS total_spent FROM \"Invoices\";\n\nGet total net value for a specific invoice:\nSELECT \"numer faktury\", SUM(\"ilość towaru\" * \"cena towaru\") AS invoice_netto FROM \"Invoices\" WHERE \"numer faktury\" = 'FA/3554/2025' GROUP BY \"numer faktury\";\n\nList line items for a specific invoice (sorted by value):\nSELECT \"nazwa towaru\", \"ilość towaru\", \"cena towaru\", (\"ilość towaru\" * \"cena towaru\") AS wartość_pozycji FROM \"Invoices\" WHERE \"numer faktury\" = 'FA/3554/2025' ORDER BY wartość_pozycji DESC;\n\nGet spending by seller in a date range (by issue date):\nSELECT \"nazwa sprzedawcy\", SUM(\"ilość towaru\" * \"cena towaru\") AS total_spent FROM \"Invoices\" WHERE \"data wystawienia\" BETWEEN '2026-01-01' AND '2026-01-31' GROUP BY \"nazwa sprzedawcy\" ORDER BY total_spent DESC;\n\nCount unique invoices in a date range:\nSELECT COUNT(DISTINCT \"numer faktury\") AS invoice_count FROM \"Invoices\" WHERE \"data wystawienia\" BETWEEN '2026-01-01' AND '2026-01-31';\n\nIMPORTANT:\n\nUse standard PostgreSQL syntax\n\nAlways use the table name \"Invoices\" exactly\n\nWhen the user provides \"numer faktury\", filter by \"numer faktury\" only (do not add \"nazwa sprzedawcy\")\n\nFor fuzzy matching of seller/item names, use ILIKE (e.g., \"nazwa sprzedawcy\" ILIKE '%Example-Seller%', \"nazwa towaru\" ILIKE '%Rura RL 28%')\n\nTotals must use SUM(\"ilość towaru\" * \"cena towaru\"); do not sum \"cena towaru\" without multiplying by \"ilość towaru\"\n\nIf the AI tool requires it: write SQL as a single line (no \\n)",
+          "operation": "executeQuery",
+          "query": "={{ $fromAI('sql_query') }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          -112,
+          48
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "Execute a SQL query in Postgres",
+        "credentials": {
+          "postgres": {
+            "id": "42LY1ZbifgI3VKWG",
+            "name": "[Client-Alpha] POSTGRES - RAG"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "updates": [
+            "message"
+          ],
+          "additionalFields": {}
+        },
+        "id": "telegram-trigger-new",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -816,
+          -176
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "telegramApi": {
+            "id": "c7TDlgp7Eck148RD",
+            "name": "[Client-Alpha] TELEGRAM - RAG BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "text-assignment",
+                "name": "chatInput",
+                "value": "={{ $json.message.text }}",
+                "type": "string"
+              },
+              {
+                "id": "session-assignment",
+                "name": "sessionId",
+                "value": "={{ $json.message.chat.id }}",
+                "type": "string"
+              },
+              {
+                "id": "chatid-assignment",
+                "name": "chatId",
+                "value": "={{ $json.message.chat.id }}",
+                "type": "number"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "extract-text-new",
+        "name": "Extract Message Text",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -592,
+          -176
+        ]
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $('Extract Message Text').item.json.chatId }}",
+          "text": "={{ $json.output }}",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "id": "telegram-send-new",
+        "name": "Send Telegram Response",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          96,
+          -176
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "telegramApi": {
+            "id": "c7TDlgp7Eck148RD",
+            "name": "[Client-Alpha] TELEGRAM - RAG BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "al-1",
+                "name": "project_name",
+                "value": "Client-Alpha",
+                "type": "string"
+              },
+              {
+                "id": "al-2",
+                "name": "workflow_name",
+                "value": "={{ $workflow.name }}",
+                "type": "string"
+              },
+              {
+                "id": "al-3",
+                "name": "execution_id",
+                "value": "={{ $execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-4",
+                "name": "execution_url",
+                "value": "={{ 'https://your-instance.app.n8n.cloud/workflow/' + $workflow.id + '/executions/' + $execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-5",
+                "name": "status",
+                "value": "success",
+                "type": "string"
+              },
+              {
+                "id": "al-6",
+                "name": "error_message",
+                "value": "",
+                "type": "string"
+              },
+              {
+                "id": "al-7",
+                "name": "time_saved_minutes",
+                "value": "=2",
+                "type": "number"
+              },
+              {
+                "id": "al-8",
+                "name": "metadata",
+                "value": "={{ JSON.stringify({ trigger: 'chat', timestamp: $now.toISO() }) }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "8afe2348-2ea7-4d33-a020-dc8bf420302a",
+        "name": "Prepare for automation_logs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          320,
+          -176
+        ]
+      },
+      {
+        "parameters": {
+          "tableId": "automation_logs",
+          "dataToSend": "autoMapInputData"
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          544,
+          -176
+        ],
+        "id": "df1943c7-c87f-4348-9518-0acf1b85c4e9",
+        "name": "Log to automation_logs",
+        "credentials": {
+          "supabaseApi": {
+            "id": "LyBj0lWVGeJXEyUf",
+            "name": "[Client-Alpha] SUPABASE - MAIN"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "OpenAI Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute a SQL query in Postgres": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Extract Message Text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Message Text": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare for automation_logs": {
+        "main": [
+          [
+            {
+              "node": "Log to automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log to automation_logs": {
+        "main": [
+          []
+        ]
+      },
+      "Send Telegram Response": {
+        "main": [
+          [
+            {
+              "node": "Prepare for automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": false,
+      "callerPolicy": "workflowsFromSameOwner",
+      "timeSavedMode": "fixed",
+      "errorWorkflow": "vc8vc7Z6tuluzYVJ",
+      "binaryMode": "separate"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "93436006-66e8-4ce9-8a13-c51f0c42a090",
+    "activeVersionId": "EXAMPLE_GOOGLE_ID",
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2026-01-22T16:33:14.334Z",
+        "createdAt": "2026-01-22T16:33:14.334Z",
+        "role": "workflow:owner",
+        "workflowId": "dTGTtO0BzAduc00d",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": {
+      "updatedAt": "2026-02-09T13:33:38.000Z",
+      "createdAt": "2026-02-09T13:33:34.780Z",
+      "versionId": "EXAMPLE_GOOGLE_ID",
+      "workflowId": "dTGTtO0BzAduc00d",
+      "nodes": [
+        {
+          "parameters": {
+            "options": {
+              "systemMessage": "=You are a financial assistant that helps answer questions about invoices stored in a Postgres database.\n\nDATABASE SCHEMA:\nThe \"Invoices\" table contains invoice line items (each row = one item/position on an invoice) with the following columns:\n\n\"Id\" (int8): row identifier\n\n\"numer faktury\" (text): invoice number (grouping key)\n\n\"nazwa sprzedawcy\" (text): seller name\n\n\"data wystawienia\" (date): invoice issue date\n\n\"data sprzedaży\" (date): sale date\n\n\"termin płatności\" (text): payment term / due date (stored as text)\n\n\"forma płatności\" (text): payment method\n\n\"nazwa towaru\" (text): item/service name\n\n\"ilość towaru\" (numeric): quantity\n\n\"cena towaru\" (numeric): unit price\n\n\"link do dokumentu\" (text): document link (may be null)\n\nIMPORTANT CALCULATION RULE:\nThere is no stored line total column. Line value must be calculated as:\n\"ilość towaru\" * \"cena towaru\"\nInvoice net value must be calculated as:\nSUM(\"ilość towaru\" * \"cena towaru\") grouped by \"numer faktury\".\n\nAVAILABLE TOOLS:\n\nQuery Document Rows: Executes SQL queries on the \"Invoices\" table\n\nQUERY STRATEGY:\n\nFor aggregation questions (sum, average, count, max, min), use SQL via Query Document Rows\n\nFor specific invoice lookups, prefer filtering by \"numer faktury\" when provided\n\nFor exploratory questions (\"show me recent invoices\"), use SQL with appropriate ORDER BY and LIMIT clauses\n\nFor fuzzy matching of \"nazwa sprzedawcy\" or \"nazwa towaru\", use case-insensitive matching with ILIKE\n\nCRITICAL PRODUCT NAME SEARCH RULE: When a user asks about a product using a partial or colloquial name (e.g., \"rura\", \"kabel\", \"złączka\"), ALWAYS use ILIKE '%keyword%' to search broadly in \"nazwa towaru\". Do NOT require the exact full product name. If the search returns multiple different product types (e.g., \"Rura osłonowa PCV RL 28\", \"Rura karbowana 32mm\"), present all found product types to the user with their quantities/values, or ask the user which specific product they mean. Never refuse to query just because the user didn't provide the full product name.\n\nCRITICAL FILTERING PRIORITY:\n\nIf the user provides \"numer faktury\", filter ONLY by \"numer faktury\" (do NOT add \"nazwa sprzedawcy\" or other filters unless explicitly requested).\n\nRESPONSE GUIDELINES:\n\nAlways show your work: explain what query you're running and why\n\nFormat currency amounts with PLN and two decimal places\n\nWhen showing multiple results, present them in a clear, organized format\n\nAlways answer in polish.\n\nIf no results are found, clearly state this — never fabricate data\n\nCRITICAL: When a user mentions a month without a year, ALWAYS use the current year. For example, if today is {{ $now.format('YYYY-MM-DD') }}, then \"August\" means \"August {{ $now.year }}\"\n\nIf a question is ambiguous (e.g., \"recent\" without a timeframe), ask for clarification or state your assumptions\n\nCurrent date: {{ $now.format('YYYY-MM-DD') }}\nCurrent year: {{ $now.year }}\n\nCRITICAL: When writing SQL queries, write them as a SINGLE LINE with spaces between clauses. Do NOT include line breaks or \\n characters."
+            }
+          },
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 3.1,
+          "position": [
+            -368,
+            -128
+          ],
+          "id": "acb64d5c-bca1-4c46-9484-98fa3d766fd0",
+          "name": "AI Agent"
+        },
+        {
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "value": "gpt-4o",
+              "mode": "list",
+              "cachedResultName": "gpt-4o"
+            },
+            "builtInTools": {},
+            "options": {
+              "temperature": 0.1
+            }
+          },
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1.3,
+          "position": [
+            -400,
+            144
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "OpenAI Chat Model1",
+          "credentials": {
+            "openAiApi": {
+              "id": "0PmreRG9VqAnmyU6",
+              "name": "[AGENCY] OPENAI - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {},
+          "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1.3,
+          "position": [
+            -256,
+            144
+          ],
+          "id": "dec33341-6fa6-422a-be3f-3f3865107675",
+          "name": "Simple Memory"
+        },
+        {
+          "parameters": {
+            "descriptionType": "manual",
+            "toolDescription": "=Run a SQL query on the \"Invoices\" table. Use this tool to query invoice line items (each row = one line item/position on an invoice) with standard PostgreSQL syntax.\n\nThe \"Invoices\" table contains the following columns:\n\n\"Id\" (int8): row identifier\n\n\"numer faktury\" (text): invoice number (grouping key)\n\n\"nazwa sprzedawcy\" (text): seller name\n\n\"data wystawienia\" (date): invoice issue date\n\n\"data sprzedaży\" (date): sale date\n\n\"termin płatności\" (text): payment due date / payment term (stored as text)\n\n\"forma płatności\" (text): payment method\n\n\"nazwa towaru\" (text): item/service name\n\n\"ilość towaru\" (numeric): quantity\n\n\"cena towaru\" (numeric): unit price\n\n\"link do dokumentu\" (text): document link (may be null)\n\nIMPORTANT CALCULATION RULE:\nThere is no stored line total column. Line value must be calculated as:\n\"ilość towaru\" * \"cena towaru\"\nInvoice net value must be calculated as:\nSUM(\"ilość towaru\" * \"cena towaru\") grouped by \"numer faktury\".\n\nQUERY EXAMPLES (write queries on single lines or with proper line breaks):\n\nGet total spending (all rows):\nSELECT SUM(\"ilość towaru\" * \"cena towaru\") AS total_spent FROM \"Invoices\";\n\nGet total net value for a specific invoice:\nSELECT \"numer faktury\", SUM(\"ilość towaru\" * \"cena towaru\") AS invoice_netto FROM \"Invoices\" WHERE \"numer faktury\" = 'FA/3554/2025' GROUP BY \"numer faktury\";\n\nList line items for a specific invoice (sorted by value):\nSELECT \"nazwa towaru\", \"ilość towaru\", \"cena towaru\", (\"ilość towaru\" * \"cena towaru\") AS wartość_pozycji FROM \"Invoices\" WHERE \"numer faktury\" = 'FA/3554/2025' ORDER BY wartość_pozycji DESC;\n\nGet spending by seller in a date range (by issue date):\nSELECT \"nazwa sprzedawcy\", SUM(\"ilość towaru\" * \"cena towaru\") AS total_spent FROM \"Invoices\" WHERE \"data wystawienia\" BETWEEN '2026-01-01' AND '2026-01-31' GROUP BY \"nazwa sprzedawcy\" ORDER BY total_spent DESC;\n\nCount unique invoices in a date range:\nSELECT COUNT(DISTINCT \"numer faktury\") AS invoice_count FROM \"Invoices\" WHERE \"data wystawienia\" BETWEEN '2026-01-01' AND '2026-01-31';\n\nIMPORTANT:\n\nUse standard PostgreSQL syntax\n\nAlways use the table name \"Invoices\" exactly\n\nWhen the user provides \"numer faktury\", filter by \"numer faktury\" only (do not add \"nazwa sprzedawcy\")\n\nFor fuzzy matching of seller/item names, use ILIKE (e.g., \"nazwa sprzedawcy\" ILIKE '%Example-Seller%', \"nazwa towaru\" ILIKE '%Rura RL 28%')\n\nTotals must use SUM(\"ilość towaru\" * \"cena towaru\"); do not sum \"cena towaru\" without multiplying by \"ilość towaru\"\n\nIf the AI tool requires it: write SQL as a single line (no \\n)",
+            "operation": "executeQuery",
+            "query": "={{ $fromAI('sql_query') }}",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.postgresTool",
+          "typeVersion": 2.6,
+          "position": [
+            16,
+            32
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "Execute a SQL query in Postgres",
+          "credentials": {
+            "postgres": {
+              "id": "42LY1ZbifgI3VKWG",
+              "name": "[Client-Alpha] POSTGRES - RAG"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "updates": [
+              "message"
+            ],
+            "additionalFields": {}
+          },
+          "id": "telegram-trigger-new",
+          "name": "Telegram Trigger",
+          "type": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            -816,
+            -128
+          ],
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "telegramApi": {
+              "id": "c7TDlgp7Eck148RD",
+              "name": "[Client-Alpha] TELEGRAM - RAG BOT"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "text-assignment",
+                  "name": "chatInput",
+                  "value": "={{ $json.message.text }}",
+                  "type": "string"
+                },
+                {
+                  "id": "session-assignment",
+                  "name": "sessionId",
+                  "value": "={{ $json.message.chat.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "chatid-assignment",
+                  "name": "chatId",
+                  "value": "={{ $json.message.chat.id }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "extract-text-new",
+          "name": "Extract Message Text",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            -624,
+            -128
+          ]
+        },
+        {
+          "parameters": {
+            "chatId": "={{ $('Extract Message Text').item.json.chatId }}",
+            "text": "={{ $json.output }}",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "id": "telegram-send-new",
+          "name": "Send Telegram Response",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            0,
+            -176
+          ],
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "telegramApi": {
+              "id": "c7TDlgp7Eck148RD",
+              "name": "[Client-Alpha] TELEGRAM - RAG BOT"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "al-1",
+                  "name": "project_name",
+                  "value": "Client-Alpha",
+                  "type": "string"
+                },
+                {
+                  "id": "al-2",
+                  "name": "workflow_name",
+                  "value": "={{ $workflow.name }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-3",
+                  "name": "execution_id",
+                  "value": "={{ $execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-4",
+                  "name": "execution_url",
+                  "value": "={{ 'https://your-instance.app.n8n.cloud/workflow/' + $workflow.id + '/executions/' + $execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-5",
+                  "name": "status",
+                  "value": "success",
+                  "type": "string"
+                },
+                {
+                  "id": "al-6",
+                  "name": "error_message",
+                  "value": "",
+                  "type": "string"
+                },
+                {
+                  "id": "al-7",
+                  "name": "time_saved_minutes",
+                  "value": "=2",
+                  "type": "number"
+                },
+                {
+                  "id": "al-8",
+                  "name": "metadata",
+                  "value": "={{ JSON.stringify({ trigger: 'chat', timestamp: $now.toISO() }) }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "8afe2348-2ea7-4d33-a020-dc8bf420302a",
+          "name": "Prepare for automation_logs",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            224,
+            -176
+          ]
+        },
+        {
+          "parameters": {
+            "tableId": "automation_logs",
+            "dataToSend": "autoMapInputData"
+          },
+          "type": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "position": [
+            496,
+            -176
+          ],
+          "id": "df1943c7-c87f-4348-9518-0acf1b85c4e9",
+          "name": "Log to automation_logs",
+          "credentials": {
+            "supabaseApi": {
+              "id": "LyBj0lWVGeJXEyUf",
+              "name": "[Client-Alpha] SUPABASE - MAIN"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "OpenAI Chat Model1": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Simple Memory": {
+          "ai_memory": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_memory",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Execute a SQL query in Postgres": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram Trigger": {
+          "main": [
+            [
+              {
+                "node": "Extract Message Text",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Message Text": {
+          "main": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Agent": {
+          "main": [
+            [
+              {
+                "node": "Send Telegram Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare for automation_logs": {
+          "main": [
+            [
+              {
+                "node": "Log to automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Log to automation_logs": {
+          "main": [
+            []
+          ]
+        },
+        "Send Telegram Response": {
+          "main": [
+            [
+              {
+                "node": "Prepare for automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "authors": "MyAgency AI",
+      "name": "Version 1a169962",
+      "description": "",
+      "autosaved": true
+    },
+    "tags": []
+  }
+}

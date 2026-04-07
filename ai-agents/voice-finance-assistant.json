@@ -1,0 +1,1305 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.035Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "WuWLxUJxn30whgPe",
+    "workflow_name": "Demo-User: Finance assistant",
+    "active": true,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-01-13T09:34:08.216Z",
+    "createdAt": "2025-11-03T17:56:44.891Z",
+    "id": "WuWLxUJxn30whgPe",
+    "name": "Demo-User: Finance assistant",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.message.text }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "string",
+                        "operation": "exists",
+                        "singleValue": true
+                      },
+                      "id": "5c290c8c-d8bd-438d-885e-98d9c13a730a"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "tekst"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "d03ffa90-d969-4edf-8ed9-331af3c0fbb4",
+                      "leftValue": "={{ $json.message.voice.file_id }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "string",
+                        "operation": "exists",
+                        "singleValue": true
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "voice"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.3,
+        "position": [
+          -448,
+          96
+        ],
+        "id": "9f881a5d-fe65-4734-b2ed-30c91015d16e",
+        "name": "Switch"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "3e21c392-d51b-4e17-bd28-6bdc8bcde6f6",
+                "name": "text",
+                "value": "={{ $json.message.text }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          0,
+          0
+        ],
+        "id": "adfe0222-f1fe-4594-9fbc-c6676e9094c9",
+        "name": "Edit Fields"
+      },
+      {
+        "parameters": {
+          "resource": "file",
+          "fileId": "={{ $json.message.voice.file_id }}",
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          -224,
+          192
+        ],
+        "id": "9218f10a-abb1-404c-948b-74eb80e01e77",
+        "name": "Get a file",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "telegramApi": {
+            "id": "CR1249lBwedCpyAP",
+            "name": "Demo-User: finance assistant"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "audio",
+          "operation": "transcribe",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 1.8,
+        "position": [
+          0,
+          192
+        ],
+        "id": "5b62dbe2-33f7-4396-b9c3-dc6b29ed6f3a",
+        "name": "Transcribe a recording",
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "MyAgency"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.text }}",
+          "hasOutputParser": true,
+          "options": {
+            "systemMessage": "=Jesteś asystentem wydatków. Twoim zadaniem jest zinterpretować moją wypowiedź i zwrócić wynik w postaci dokładnie tego JSON-a:\n\n{\n  \"kwota\": number | null,\n  \"waluta\": string,\n  \"kategoria\": string | null,\n  \"detale\": string | \"\",\n  \"is_expense\": boolean,\n  \"reason\": string | \"\"   // krótka uwaga, dlaczego is_expense=false (np. greeting, irrelevant)\n}\n\nZasady działania:\n1. Jeśli w wypowiedzi NIE ma kwoty lub nie dotyczy ona wydatku (np. to powitanie, żart, pytanie), ustaw:\n   - \"is_expense\": false\n   - \"kwota\": null\n   - \"reason\": np. \"greeting\", \"no amount\", \"irrelevant\"\n   - pozostałe pola zostaw puste lub null.\n2. Jeśli wypowiedź zawiera informację o wydatku:\n   - \"is_expense\": true\n   - \"kwota\": liczba (bez symboli walut)\n   - \"waluta\": jeśli nie podano, wpisz \"PLN\"\n   - \"kategoria\": wybierz jedną z poniższych:\n     [\"Przyjemności\", \"Zwiedzanie\", \"Rzeczy\", \"Jedzenie\", \"Transport - inne\", \"Transport - loty\", \"Usługi\", \"Mieszkanie\", \"Zdrowie\", \"Używki\", \"Rachunki\", \"Podatki\", \"AI Consulting Agency\"]\n   - \"detale\": krótki opis (np. \"sushi z Kubą w Warszawie\").\n3. Zwróć **tylko JSON**, nic poza nim (żadnego komentarza ani tekstu opisowego).\n4. Jeśli nie masz pełnej pewności co do kategorii, wybierz najbardziej prawdopodobną i dodaj w \"reason\" np. \"medium confidence\".\n\nPrzykłady:\n\nInput:\n\"Kupiłem bilet do muzeum za 35 zł\"\nOutput:\n{\n  \"kwota\": 35,\n  \"waluta\": \"PLN\",\n  \"kategoria\": \"Zwiedzanie\",\n  \"detale\": \"bilet do muzeum\",\n  \"is_expense\": true,\n  \"reason\": \"\"\n}\n\nInput:\n\"Hej, co tam?\"\nOutput:\n{\n  \"kwota\": null,\n  \"waluta\": \"PLN\",\n  \"kategoria\": null,\n  \"detale\": \"\",\n  \"is_expense\": false,\n  \"reason\": \"greeting\"\n}\n"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          224,
+          96
+        ],
+        "id": "d5af4e5b-04cc-4a64-8677-618d556300ec",
+        "name": "AI Agent1"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "gpt-4o-mini",
+            "mode": "list",
+            "cachedResultName": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          304,
+          320
+        ],
+        "id": "3a41966e-dc63-442d-a8ab-7e0058eb3396",
+        "name": "OpenAI Chat Model1",
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "MyAgency"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.is_expense }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "boolean",
+                        "operation": "true",
+                        "singleValue": true
+                      },
+                      "id": "c750c157-bfc5-4907-9324-e6bced88a1f0"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "ce3139bd-7bce-485b-b9b6-942ea3230b2c",
+                      "leftValue": "={{ $json.is_expense }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "boolean",
+                        "operation": "false",
+                        "singleValue": true
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.3,
+        "position": [
+          800,
+          96
+        ],
+        "id": "8c18e50d-8c57-4923-b5f9-4ca357724fca",
+        "name": "Switch1"
+      },
+      {
+        "parameters": {
+          "jsCode": "// AI zwraca tekst JSON w polu output (string), więc go parsujemy:\nconst raw = $json[\"output\"];\n\n// usuń ewentualne znaki nowej linii i spacje\nlet clean = raw.trim();\n\n// Spróbuj sparsować – jeśli nie działa, zwróć null\nlet data;\ntry {\n  data = JSON.parse(clean);\n} catch (e) {\n  data = {\n    kwota: null,\n    waluta: \"PLN\",\n    kategoria: null,\n    detale: \"\",\n    is_expense: false,\n    reason: \"invalid JSON\"\n  };\n}\n\n// Zwróć wynik jako pojedynczy obiekt JSON\nreturn [data];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          576,
+          96
+        ],
+        "id": "aaef93f8-1743-488a-a0ea-a4942b30bbbf",
+        "name": "Parse JSON"
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Wydatki",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Wydatki",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Amount": "={{ $json.kwota }}",
+              "Category": "={{ $json.kategoria }}",
+              "Details": "={{ $json.detale }}",
+              "Currency": "={{ $json.waluta }}",
+              "Timestamp": "={{ $now.toFormat(\"dd/LL/yyyy\") }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "Timestamp",
+                "displayName": "Timestamp",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Amount",
+                "displayName": "Amount",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Category",
+                "displayName": "Category",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Details",
+                "displayName": "Details",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Currency",
+                "displayName": "Currency",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Ile w PLN (EXR)",
+                "displayName": "Ile w PLN (EXR)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          1024,
+          0
+        ],
+        "id": "4a7f074a-084c-4fcd-ba6b-3d475a1ac34f",
+        "name": "Append row in sheet",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "m3jaIyTWpZ3WF7Sh",
+            "name": "Google Sheets demo-user"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "text": "=✅ Wydatek dodany ✅\n\nKwota: {{ $json.Amount }}\nWaluta: {{ $json.Currency }}\nKategoria: {{ $json.Category }}\nSzczegóły: {{ $json.Details }}",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1248,
+          0
+        ],
+        "id": "e6188bd5-1160-47e8-a782-5af2098111c6",
+        "name": "Send a text message",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "telegramApi": {
+            "id": "CR1249lBwedCpyAP",
+            "name": "Demo-User: finance assistant"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "text": "⚠️ Nie zapisałem nic — nie rozpoznałem wydatku.\n",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1024,
+          192
+        ],
+        "id": "39b222a0-6483-4c47-b831-d25aac0a0673",
+        "name": "Send a text message1",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "telegramApi": {
+            "id": "CR1249lBwedCpyAP",
+            "name": "Demo-User: finance assistant"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Wydatki",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Wydatki",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+          }
+        },
+        "type": "n8n-nodes-base.evaluationTrigger",
+        "typeVersion": 4.6,
+        "position": [
+          -672,
+          432
+        ],
+        "id": "fc78eabe-f336-4bcd-a3aa-1f02cb6df647",
+        "name": "When fetching a dataset row",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "m3jaIyTWpZ3WF7Sh",
+            "name": "Google Sheets demo-user"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Wydatki",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Wydatki",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+          },
+          "outputs": {
+            "values": [
+              {
+                "outputName": "=Output",
+                "outputValue": "={{ $json.output }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.evaluation",
+        "typeVersion": 4.7,
+        "position": [
+          -672,
+          656
+        ],
+        "id": "2203da67-c761-40d2-a97d-77542181c903",
+        "name": "Evaluation",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "m3jaIyTWpZ3WF7Sh",
+            "name": "Google Sheets demo-user"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "updates": [
+            "message"
+          ],
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -672,
+          96
+        ],
+        "id": "03d84ce4-3e41-4a8b-a197-8108210762d6",
+        "name": "Telegram Trigger",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "telegramApi": {
+            "id": "CR1249lBwedCpyAP",
+            "name": "Demo-User: finance assistant"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Switch": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get a file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "AI Agent1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get a file": {
+        "main": [
+          [
+            {
+              "node": "Transcribe a recording",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcribe a recording": {
+        "main": [
+          [
+            {
+              "node": "AI Agent1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent1": {
+        "main": [
+          [
+            {
+              "node": "Parse JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent1",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch1": {
+        "main": [
+          [
+            {
+              "node": "Append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send a text message1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse JSON": {
+        "main": [
+          [
+            {
+              "node": "Switch1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Send a text message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "callerPolicy": "workflowsFromSameOwner",
+      "errorWorkflow": "MD4k2zo2Irs0pt50",
+      "availableInMCP": false,
+      "timeSavedMode": "fixed"
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {},
+    "versionId": "EXAMPLE_GOOGLE_ID",
+    "activeVersionId": "6aabac87-a3b4-4279-90df-d49b48f8996a",
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2025-11-03T17:56:44.897Z",
+        "createdAt": "2025-11-03T17:56:44.897Z",
+        "role": "workflow:owner",
+        "workflowId": "WuWLxUJxn30whgPe",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": {
+      "updatedAt": "2026-01-13T09:28:24.000Z",
+      "createdAt": "2026-01-13T09:27:50.156Z",
+      "versionId": "6aabac87-a3b4-4279-90df-d49b48f8996a",
+      "workflowId": "WuWLxUJxn30whgPe",
+      "nodes": [
+        {
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 2
+                    },
+                    "conditions": [
+                      {
+                        "leftValue": "={{ $json.message.text }}",
+                        "rightValue": "",
+                        "operator": {
+                          "type": "string",
+                          "operation": "exists",
+                          "singleValue": true
+                        },
+                        "id": "5c290c8c-d8bd-438d-885e-98d9c13a730a"
+                      }
+                    ],
+                    "combinator": "and"
+                  },
+                  "renameOutput": true,
+                  "outputKey": "tekst"
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 2
+                    },
+                    "conditions": [
+                      {
+                        "id": "d03ffa90-d969-4edf-8ed9-331af3c0fbb4",
+                        "leftValue": "={{ $json.message.voice.file_id }}",
+                        "rightValue": "",
+                        "operator": {
+                          "type": "string",
+                          "operation": "exists",
+                          "singleValue": true
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  },
+                  "renameOutput": true,
+                  "outputKey": "voice"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 3.3,
+          "position": [
+            -448,
+            96
+          ],
+          "id": "9f881a5d-fe65-4734-b2ed-30c91015d16e",
+          "name": "Switch"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "3e21c392-d51b-4e17-bd28-6bdc8bcde6f6",
+                  "name": "text",
+                  "value": "={{ $json.message.text }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            0,
+            0
+          ],
+          "id": "adfe0222-f1fe-4594-9fbc-c6676e9094c9",
+          "name": "Edit Fields"
+        },
+        {
+          "parameters": {
+            "resource": "file",
+            "fileId": "={{ $json.message.voice.file_id }}",
+            "additionalFields": {}
+          },
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            -224,
+            192
+          ],
+          "id": "9218f10a-abb1-404c-948b-74eb80e01e77",
+          "name": "Get a file",
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "telegramApi": {
+              "id": "CR1249lBwedCpyAP",
+              "name": "Demo-User: finance assistant"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "resource": "audio",
+            "operation": "transcribe",
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "typeVersion": 1.8,
+          "position": [
+            0,
+            192
+          ],
+          "id": "5b62dbe2-33f7-4396-b9c3-dc6b29ed6f3a",
+          "name": "Transcribe a recording",
+          "credentials": {
+            "openAiApi": {
+              "id": "0PmreRG9VqAnmyU6",
+              "name": "MyAgency"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "promptType": "define",
+            "text": "={{ $json.text }}",
+            "hasOutputParser": true,
+            "options": {
+              "systemMessage": "=Jesteś asystentem wydatków. Twoim zadaniem jest zinterpretować moją wypowiedź i zwrócić wynik w postaci dokładnie tego JSON-a:\n\n{\n  \"kwota\": number | null,\n  \"waluta\": string,\n  \"kategoria\": string | null,\n  \"detale\": string | \"\",\n  \"is_expense\": boolean,\n  \"reason\": string | \"\"   // krótka uwaga, dlaczego is_expense=false (np. greeting, irrelevant)\n}\n\nZasady działania:\n1. Jeśli w wypowiedzi NIE ma kwoty lub nie dotyczy ona wydatku (np. to powitanie, żart, pytanie), ustaw:\n   - \"is_expense\": false\n   - \"kwota\": null\n   - \"reason\": np. \"greeting\", \"no amount\", \"irrelevant\"\n   - pozostałe pola zostaw puste lub null.\n2. Jeśli wypowiedź zawiera informację o wydatku:\n   - \"is_expense\": true\n   - \"kwota\": liczba (bez symboli walut)\n   - \"waluta\": jeśli nie podano, wpisz \"PLN\"\n   - \"kategoria\": wybierz jedną z poniższych:\n     [\"Przyjemności\", \"Zwiedzanie\", \"Rzeczy\", \"Jedzenie\", \"Transport - metro/uber\", \"Transport - loty\", \"Usługi\", \"Mieszkanie\", \"Zdrowie\", \"Używki\", \"Krypto\", \"Rachunki\", \"Podatki\", \"AI Consulting Agency\"]\n   - \"detale\": krótki opis (np. \"sushi z Kubą w Warszawie\").\n3. Zwróć **tylko JSON**, nic poza nim (żadnego komentarza ani tekstu opisowego).\n4. Jeśli nie masz pełnej pewności co do kategorii, wybierz najbardziej prawdopodobną i dodaj w \"reason\" np. \"medium confidence\".\n\nPrzykłady:\n\nInput:\n\"Kupiłem bilet do muzeum za 35 zł\"\nOutput:\n{\n  \"kwota\": 35,\n  \"waluta\": \"PLN\",\n  \"kategoria\": \"Zwiedzanie\",\n  \"detale\": \"bilet do muzeum\",\n  \"is_expense\": true,\n  \"reason\": \"\"\n}\n\nInput:\n\"Hej, co tam?\"\nOutput:\n{\n  \"kwota\": null,\n  \"waluta\": \"PLN\",\n  \"kategoria\": null,\n  \"detale\": \"\",\n  \"is_expense\": false,\n  \"reason\": \"greeting\"\n}\n"
+            }
+          },
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 2.2,
+          "position": [
+            224,
+            96
+          ],
+          "id": "d5af4e5b-04cc-4a64-8677-618d556300ec",
+          "name": "AI Agent1"
+        },
+        {
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "value": "gpt-4o-mini",
+              "mode": "list",
+              "cachedResultName": "gpt-4o-mini"
+            },
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1.2,
+          "position": [
+            304,
+            320
+          ],
+          "id": "3a41966e-dc63-442d-a8ab-7e0058eb3396",
+          "name": "OpenAI Chat Model1",
+          "credentials": {
+            "openAiApi": {
+              "id": "0PmreRG9VqAnmyU6",
+              "name": "MyAgency"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 2
+                    },
+                    "conditions": [
+                      {
+                        "leftValue": "={{ $json.is_expense }}",
+                        "rightValue": "",
+                        "operator": {
+                          "type": "boolean",
+                          "operation": "true",
+                          "singleValue": true
+                        },
+                        "id": "c750c157-bfc5-4907-9324-e6bced88a1f0"
+                      }
+                    ],
+                    "combinator": "and"
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 2
+                    },
+                    "conditions": [
+                      {
+                        "id": "ce3139bd-7bce-485b-b9b6-942ea3230b2c",
+                        "leftValue": "={{ $json.is_expense }}",
+                        "rightValue": "",
+                        "operator": {
+                          "type": "boolean",
+                          "operation": "false",
+                          "singleValue": true
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  }
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 3.3,
+          "position": [
+            800,
+            96
+          ],
+          "id": "8c18e50d-8c57-4923-b5f9-4ca357724fca",
+          "name": "Switch1"
+        },
+        {
+          "parameters": {
+            "jsCode": "// AI zwraca tekst JSON w polu output (string), więc go parsujemy:\nconst raw = $json[\"output\"];\n\n// usuń ewentualne znaki nowej linii i spacje\nlet clean = raw.trim();\n\n// Spróbuj sparsować – jeśli nie działa, zwróć null\nlet data;\ntry {\n  data = JSON.parse(clean);\n} catch (e) {\n  data = {\n    kwota: null,\n    waluta: \"PLN\",\n    kategoria: null,\n    detale: \"\",\n    is_expense: false,\n    reason: \"invalid JSON\"\n  };\n}\n\n// Zwróć wynik jako pojedynczy obiekt JSON\nreturn [data];\n"
+          },
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            576,
+            96
+          ],
+          "id": "aaef93f8-1743-488a-a0ea-a4942b30bbbf",
+          "name": "Parse JSON"
+        },
+        {
+          "parameters": {
+            "operation": "append",
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Wydatki",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Wydatki",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+            },
+            "columns": {
+              "mappingMode": "defineBelow",
+              "value": {
+                "Amount": "={{ $json.kwota }}",
+                "Category": "={{ $json.kategoria }}",
+                "Details": "={{ $json.detale }}",
+                "Currency": "={{ $json.waluta }}",
+                "Timestamp": "={{ $now.toFormat(\"dd/LL/yyyy\") }}"
+              },
+              "matchingColumns": [],
+              "schema": [
+                {
+                  "id": "Timestamp",
+                  "displayName": "Timestamp",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Amount",
+                  "displayName": "Amount",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Category",
+                  "displayName": "Category",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Details",
+                  "displayName": "Details",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Currency",
+                  "displayName": "Currency",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Ile w PLN (EXR)",
+                  "displayName": "Ile w PLN (EXR)",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                }
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.7,
+          "position": [
+            1024,
+            0
+          ],
+          "id": "4a7f074a-084c-4fcd-ba6b-3d475a1ac34f",
+          "name": "Append row in sheet",
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "m3jaIyTWpZ3WF7Sh",
+              "name": "Google Sheets demo-user"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "text": "=✅ Wydatek dodany ✅\n\nKwota: {{ $json.Amount }}\nWaluta: {{ $json.Currency }}\nKategoria: {{ $json.Category }}\nSzczegóły: {{ $json.Details }}",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            1248,
+            0
+          ],
+          "id": "e6188bd5-1160-47e8-a782-5af2098111c6",
+          "name": "Send a text message",
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "telegramApi": {
+              "id": "CR1249lBwedCpyAP",
+              "name": "Demo-User: finance assistant"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "text": "⚠️ Nie zapisałem nic — nie rozpoznałem wydatku.\n",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            1024,
+            192
+          ],
+          "id": "39b222a0-6483-4c47-b831-d25aac0a0673",
+          "name": "Send a text message1",
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "telegramApi": {
+              "id": "CR1249lBwedCpyAP",
+              "name": "Demo-User: finance assistant"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Wydatki",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Wydatki",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+            }
+          },
+          "type": "n8n-nodes-base.evaluationTrigger",
+          "typeVersion": 4.6,
+          "position": [
+            -672,
+            432
+          ],
+          "id": "fc78eabe-f336-4bcd-a3aa-1f02cb6df647",
+          "name": "When fetching a dataset row",
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "m3jaIyTWpZ3WF7Sh",
+              "name": "Google Sheets demo-user"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Wydatki",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Wydatki",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+            },
+            "outputs": {
+              "values": [
+                {
+                  "outputName": "=Output",
+                  "outputValue": "={{ $json.output }}"
+                }
+              ]
+            }
+          },
+          "type": "n8n-nodes-base.evaluation",
+          "typeVersion": 4.7,
+          "position": [
+            -672,
+            656
+          ],
+          "id": "2203da67-c761-40d2-a97d-77542181c903",
+          "name": "Evaluation",
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "m3jaIyTWpZ3WF7Sh",
+              "name": "Google Sheets demo-user"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "updates": [
+              "message"
+            ],
+            "additionalFields": {}
+          },
+          "type": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            -672,
+            96
+          ],
+          "id": "03d84ce4-3e41-4a8b-a197-8108210762d6",
+          "name": "Telegram Trigger",
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "telegramApi": {
+              "id": "CR1249lBwedCpyAP",
+              "name": "Demo-User: finance assistant"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Switch": {
+          "main": [
+            [
+              {
+                "node": "Edit Fields",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Get a file",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Edit Fields": {
+          "main": [
+            [
+              {
+                "node": "AI Agent1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get a file": {
+          "main": [
+            [
+              {
+                "node": "Transcribe a recording",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Transcribe a recording": {
+          "main": [
+            [
+              {
+                "node": "AI Agent1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Agent1": {
+          "main": [
+            [
+              {
+                "node": "Parse JSON",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model1": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent1",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Switch1": {
+          "main": [
+            [
+              {
+                "node": "Append row in sheet",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Send a text message1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse JSON": {
+          "main": [
+            [
+              {
+                "node": "Switch1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Append row in sheet": {
+          "main": [
+            [
+              {
+                "node": "Send a text message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram Trigger": {
+          "main": [
+            [
+              {
+                "node": "Switch",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "authors": "MyAgency AI",
+      "name": "Version 6aabac87",
+      "description": "",
+      "autosaved": false
+    },
+    "tags": []
+  }
+}

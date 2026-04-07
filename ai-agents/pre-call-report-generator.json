@@ -1,0 +1,681 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.050Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "q6qwOtwiDRZUB8PQ",
+    "workflow_name": "Pre-call Report",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2025-11-25T20:56:35.000Z",
+    "createdAt": "2025-10-30T10:18:30.681Z",
+    "id": "q6qwOtwiDRZUB8PQ",
+    "name": "Pre-call Report",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "responseMode": "responseNode",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "text/markdown; charset=utf-8"
+                }
+              ]
+            }
+          }
+        },
+        "id": "988f9697-36d3-4f6d-9e1b-fd8d197dc537",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -240,
+          160
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ ($json.linkedin_url ?? $json.body?.linkedin_url ?? '').trim() }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "id": "b5a37bca-d5e3-4418-b149-f1058e336e53"
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "f885b88f-c6db-4797-84ae-f0608d8f82f1",
+        "name": "Podał Linkedin?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ ($json.company_url ?? $json.body?.company_url ?? '').trim() }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "id": "5f2d2022-f093-4083-ab8a-2e61cbb1cfae"
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "2413ee32-c752-49c2-85de-61913ae540a2",
+        "name": "Podał adres strony?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          0,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://enrichlayer.com/api/v2/profile",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "httpBearerAuth",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "profile_url",
+                "value": "={{ $json.linkedin_url ?? $json.body?.linkedin_url ?? '' }}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        "id": "c7ef621e-4230-4153-867e-7e7aacfb204d",
+        "name": "Pobiera dane z Linkedin",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          288,
+          -16
+        ],
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "FXqBZ7EfXtSRB0uf",
+            "name": "Proxycurl for Linkedin"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "url": "={{ ($json.company_url ?? $json.body?.company_url ?? '').trim() }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36(KHTML, like Gecko) Chrome/123 Safari/537.36"
+              },
+              {
+                "name": "Accept",
+                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+              },
+              {
+                "name": "Accept-Language",
+                "value": "pl,en;q=0.8"
+              }
+            ]
+          },
+          "options": {
+            "redirect": {
+              "redirect": {
+                "maxRedirects": 10
+              }
+            },
+            "response": {
+              "response": {
+                "neverError": true,
+                "responseFormat": "text",
+                "outputPropertyName": "html"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        "id": "0468c6d4-e177-48df-95e7-2834570ad3d8",
+        "name": "Pobiera dane ze strony",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          288,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "company_text",
+                "value": "",
+                "type": "string",
+                "id": "e4b69492-62db-4e36-ac4b-d62b119fbbe0"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "28c11dc0-aa31-4610-bd5d-8d12e3d3c95a",
+        "name": "Nie podał strony",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          288,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "linkedin_data",
+                "value": "={}",
+                "type": "object"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "567ed53b-f77a-431c-bda1-7789e5d49073",
+        "name": "Nie podał Linkedin'a",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          288,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const MAX=12000;const html=$json.html||'';let t=html.replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&amp;|&quot;|&#39;|&lt;|&gt;/g,' ').replace(/\\s+/g,' ').trim();t=t.slice(0,MAX);return [{json:{company_text:t}}];"
+        },
+        "id": "b8c80efc-1cfd-481b-909f-38a0ba1254cd",
+        "name": "Formatuje i przycina tekst",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          528,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combinationMode": "mergeByPosition",
+          "options": {}
+        },
+        "id": "335f0efa-4b32-419c-a361-03db83b10eea",
+        "name": "Agreguje wszystkie dane",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 2.1,
+        "position": [
+          992,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "EXAMPLE_GOOGLE_ID",
+                "name": "linkedin_data",
+                "value": "={{$json.data ?? $json}}",
+                "type": "object"
+              }
+            ]
+          },
+          "options": {
+            "ignoreConversionErrors": true
+          }
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          544,
+          32
+        ],
+        "id": "3824170b-a614-44bc-851b-fa939c4cb6d1",
+        "name": "Mapuje info z LinkedIn’a"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combinationMode": "mergeByPosition",
+          "options": {}
+        },
+        "id": "e436ddb7-e71f-4e32-82e1-8701a3218f29",
+        "name": "Agreguje info z Linkedin'a",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 2.1,
+        "position": [
+          768,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.user }}",
+          "messages": {
+            "messageValues": [
+              {
+                "message": "={{ $json.system }}"
+              },
+              {
+                "type": "HumanMessagePromptTemplate",
+                "message": "=={{$json.user}}"
+              }
+            ]
+          },
+          "batching": {}
+        },
+        "id": "6aff70a1-901f-45b3-a349-3bcd1e4ca574",
+        "name": "Tworzy Pre-call Report",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.7,
+        "position": [
+          1728,
+          272
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const j = $json;\n\n/* =========================\n   SYSTEM PROMPT (PL)\n   ========================= */\nconst system = `Jesteś analitykiem biznesowym w zespole **AI Consulting Agency Client Analysis**. \nTwoim zadaniem jest przygotować profesjonalny **Pre-Call Report** w języku polskim w formacie Markdown.\n\nRaport ma służyć konsultantowi lub handlowcowi do przygotowania się do rozmowy z potencjalnym klientem.\n\nUwzględnij w nim następujące sekcje (TYTUŁY PO POLSKU):\n1️⃣ Profil osoby\n2️⃣ Przegląd firmy\n3️⃣ Mocne strony / wyróżniki  \n4️⃣ Wyzwania / punkty bólu  \n5️⃣ Potencjalne obszary AI / automatyzacji  \n6️⃣ Rekomendowane punkty rozmowy na callu  \n7️⃣ Braki informacyjne  \n8️⃣ Skrypt 30-sekundowego otwarcia rozmowy  \n\nZawsze zachowaj logiczną strukturę i czytelny układ Markdown (nagłówki, listy punktowane, odstępy). \nNie wymyślaj danych – jeśli czegoś brakuje, wpisz to w sekcji „Braki informacyjne”.\n\nDODATKOWA ZASADA FORMATOWANIA:\n- **Nie używaj** składni linków Markdown \\`[tekst](url)\\`.\n- Gdy podajesz link (np. do profilu LinkedIn), wypisz go jako **czysty URL**, np. \\`https://linkedin.com/in/...\\`.`;\n\n/* =========================\n   WEJŚCIA – skąd bierzemy dane\n   ========================= */\n// ZAWSZE bierzemy adresy bezpośrednio z Webhooka (pewne źródło wejścia)\nconst companyUrl =\n  $('Webhook').first()?.json?.company_url\n  || j.company_url\n  || $('Webhook').first()?.json?.website\n  || $('Webhook').first()?.json?.url\n  || '';\n\nconst linkedinUrl =\n  $('Webhook').first()?.json?.linkedin_url\n  || j.linkedin_url\n  || '';\n\n// Tekst strony i dane LI bierz WYŁĄCZNIE z $json (bo Code jest po merge’u)\nlet companyTextRaw = j.company_text;\n\n// Zabezpieczenie na wypadek starszych przebiegów, gdzie company_text mógł być booleanem:\nif (typeof companyTextRaw === 'boolean') companyTextRaw = companyTextRaw ? '' : '';\n\nconst companyText =\n  (companyTextRaw && String(companyTextRaw).trim().length > 0)\n    ? String(companyTextRaw).trim().slice(0, 8000)\n    : (companyUrl\n        ? `Strona podana: ${companyUrl}. Treść strony nie została pobrana (blokada JS/CSP lub brak treści).`\n        : '_Brak danych ze strony firmowej._');\n\nconst li = j.linkedin_data || {};\n\n/* =========================\n   Heurystyki nazwy spółki / osoby do tytułu\n   ========================= */\nconst prospectName =\n  li.full_name || li.name || li.person_full_name || '';\n\nlet companyName = li.company?.name || li.company || '';\nif (!companyName && companyUrl) {\n  try {\n    const host = new URL(companyUrl).hostname.replace(/^www\\./,'');\n    companyName = host.split('.')[0].toUpperCase();\n  } catch(e) { /* zostaw pustą nazwę */ }\n}\n\nconst title = `Pre-call Report – ${companyName || companyUrl || 'Firma'}${prospectName ? ' / ' + prospectName : ''}`;\n\n/* =========================\n   LinkedIn jako ładny JSON lub info o braku\n   ========================= */\nconst linkedinInfo =\n  li && Object.keys(li).length > 0\n    ? JSON.stringify(li, null, 2)\n    : 'Brak szczegółów — profil LinkedIn nie został pobrany lub nie podano URL.';\n\n/* =========================\n   USER PROMPT – dane wejściowe do LLM\n   ========================= */\nconst user = `# ${title}\n\n---\n\n## 🔗 Dane wejściowe\n- **COMPANY_URL:** ${companyUrl || 'brak'}\n- **LINKEDIN_URL:** ${linkedinUrl || 'brak'}\n\n---\n\n## 🏢 Treść ze strony firmy\n${companyText}\n\n---\n\n## 👤 Dane z LinkedIn (JSON)\n\\`\\`\\`json\n${linkedinInfo}\n\\`\\`\\`\n\n---\n\nNa podstawie powyższych danych przygotuj kompletny raport zgodny z instrukcją w system prompt, używając dokładnie polskich tytułów sekcji.`;\n\n/* =========================\n   Zwracamy też pola do tematu e-maila\n   ========================= */\nreturn [{\n  json: {\n    system,\n    user,\n    recipient_email: j.recipient_email || '',\n    company_name: companyName || '',\n    prospect_name: prospectName || '',\n    report_title: title\n  }\n}];\n"
+        },
+        "id": "f643ccfd-5ae0-49b8-823b-29e53c9a6c8a",
+        "name": "System Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1328,
+          272
+        ]
+      },
+      {
+        "parameters": {
+          "sendTo": "user@example.com",
+          "subject": "=={{ $('System Prompt').first().json.report_title }}",
+          "message": "={{ `<div style=\"white-space:pre-wrap;font-family:Segoe UI,Arial,sans-serif;line-height:1.6;font-size:15px;color:#222;\">${$json.text.replaceAll('\\\\n','<br><br>')}</div>` }}\n",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "position": [
+          2112,
+          496
+        ],
+        "id": "34f4c0d2-1875-447b-9dc9-d12ae6202f0d",
+        "name": "Send a message",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "OFVvKTJMK5GQYalJ",
+            "name": "info@example-agency.com"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "=text/markdown; charset=utf-8"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                }
+              ]
+            },
+            "responseKey": "text"
+          }
+        },
+        "id": "033c6d83-4a3c-430a-82a8-9de80c012660",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          2112,
+          272
+        ]
+      },
+      {
+        "parameters": {
+          "model": {
+            "value": "gpt-4.1-mini",
+            "mode": "id"
+          },
+          "options": {
+            "maxTokens": 2000,
+            "temperature": 0.2
+          }
+        },
+        "id": "a681ca0b-651d-46be-8d3a-7ead160e1fc7",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          1616,
+          464
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "MyAgency"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Podał Linkedin?",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Podał adres strony?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Podał Linkedin?": {
+        "main": [
+          [
+            {
+              "node": "Pobiera dane z Linkedin",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Nie podał Linkedin'a",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Podał adres strony?": {
+        "main": [
+          [
+            {
+              "node": "Pobiera dane ze strony",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Nie podał strony",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pobiera dane z Linkedin": {
+        "main": [
+          [
+            {
+              "node": "Mapuje info z LinkedIn’a",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pobiera dane ze strony": {
+        "main": [
+          [
+            {
+              "node": "Formatuje i przycina tekst",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nie podał strony": {
+        "main": [
+          [
+            {
+              "node": "Agreguje wszystkie dane",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Nie podał Linkedin'a": {
+        "main": [
+          [
+            {
+              "node": "Agreguje info z Linkedin'a",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Formatuje i przycina tekst": {
+        "main": [
+          [
+            {
+              "node": "Agreguje wszystkie dane",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Agreguje wszystkie dane": {
+        "main": [
+          [
+            {
+              "node": "System Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mapuje info z LinkedIn’a": {
+        "main": [
+          [
+            {
+              "node": "Agreguje info z Linkedin'a",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agreguje info z Linkedin'a": {
+        "main": [
+          [
+            {
+              "node": "Agreguje wszystkie dane",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "System Prompt": {
+        "main": [
+          [
+            {
+              "node": "Tworzy Pre-call Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tworzy Pre-call Report": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Tworzy Pre-call Report",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "callerPolicy": "any",
+      "availableInMCP": false,
+      "errorWorkflow": "qbOSaENwdtXKQhbo"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {
+      "Webhook": [
+        {
+          "json": {
+            "headers": {
+              "host": "your-instance.app.n8n.cloud",
+              "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+              "content-length": "105",
+              "accept": "*/*",
+              "accept-encoding": "gzip, br",
+              "accept-language": "pl-PL,pl;q=0.9",
+              "cdn-loop": "cloudflare; loops=1; subreqs=1",
+              "cf-connecting-ip": "0.0.0.0",
+              "cf-ew-via": "15",
+              "cf-ipcountry": "PL",
+              "cf-ray": "xxxxxxxxxxxxxxxx-XXX",
+              "cf-visitor": "{\"scheme\":\"https\"}",
+              "cf-worker": "n8n.cloud",
+              "content-type": "application/json",
+              "origin": "https://example-preview.lovable.app",
+              "priority": "u=1, i",
+              "referer": "https://example-preview.lovable.app/",
+              "sec-ch-ua": "\"Chromium\";v=\"142\", \"Brave\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+              "sec-ch-ua-mobile": "?0",
+              "sec-ch-ua-platform": "\"Windows\"",
+              "sec-fetch-dest": "empty",
+              "sec-fetch-mode": "cors",
+              "sec-fetch-site": "cross-site",
+              "sec-gpc": "1",
+              "x-forwarded-for": "0.0.0.0, 0.0.0.0",
+              "x-forwarded-host": "your-instance.app.n8n.cloud",
+              "x-forwarded-port": "443",
+              "x-forwarded-proto": "https",
+              "x-forwarded-server": "traefik-prod-users-gwc-64-799ffc96d7-7qx4c",
+              "x-is-trusted": "yes",
+              "x-real-ip": "0.0.0.0"
+            },
+            "params": {},
+            "query": {},
+            "body": {
+              "company_url": "https://example-company.com/",
+              "linkedin_url": "https://www.linkedin.com/in/jane-smith-example/"
+            },
+            "webhookUrl": "https://your-instance.app.n8n.cloud/webhook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+            "executionMode": "production"
+          }
+        }
+      ]
+    },
+    "versionId": "6670470f-8353-46c8-a7eb-b57b277fc360",
+    "activeVersionId": null,
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2025-10-30T10:18:30.688Z",
+        "createdAt": "2025-10-30T10:18:30.688Z",
+        "role": "workflow:owner",
+        "workflowId": "q6qwOtwiDRZUB8PQ",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

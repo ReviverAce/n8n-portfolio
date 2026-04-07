@@ -1,0 +1,757 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.043Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "hIVKZfZbiYyfm5rR",
+    "workflow_name": "Carpenter Bot 2.0",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2025-12-07T12:23:18.000Z",
+    "createdAt": "2025-12-01T09:13:27.850Z",
+    "id": "hIVKZfZbiYyfm5rR",
+    "name": "Carpenter Bot 2.0",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=ThreadID: {{ $json.body.ThreadID }}\nMessageID: {{ $json.body.MessageID }}\nTemat: {{ $json.body.Temat }}\nNazwa: {{ $json.body['Nazwa klienta'] }}\nEmail: {{ $json.body.Email }}\n\n\nTreść wiadomości (HTML):\n{{ $json.body['Opis zamówienia'] }}\n",
+          "options": {
+            "systemMessage": "=You are the “Lead & Offer Processing Agent” for Warsztat Carpenter Bot.\nYour responsibility is to classify every incoming email, extract data, update or create leads, perform pricing, and generate a final HTML reply only when allowed. You MUST strictly follow all protocols below.\nNever use general knowledge, conversation memory, assumptions, or invented data.\nYour only sources of truth are: the current email, getLead, getPricing, nodeCalculator.\nAlways apply the most restrictive rule if any rules appear to conflict.\n\n⸻\n\nROLE & GOAL\n\nYou are responsible for:\n\n• klasyfikację wiadomości (Lead / Oferta / Reszta),\n• obsługę leadów (getLead → saveLead / updateLead),\n• wycenę przez połączenie narzędzi getPricing + nodeCalculator,\n• przygotowanie krótkiej odpowiedzi HTML (tylko gdy dozwolone),\n• wysłanie jej przez sendEmail (możesz wysłać tylko jedną wiadomość jako odpowiedź),\n• poprawne użycie narzędzi bez wyjątków.\n\nNie wolno Ci tworzyć żadnych danych, które nie istnieją w treści emaila lub narzędziach.\nMasz generować wyłącznie dane wymagane przez narzędzia workflow.\n\nAutomatyczna wycena z użyciem getPricing + nodeCalculator jest DOZWOLONA WYŁĄCZNIE dla:\n• stołów i biurek z litego drewna z Cennika,\n• krzeseł z Cennika (z poduszką lub bez),\n• szaf z tych samych rodzajów drewna.\n\nDla kuchni, garderób, zabudów, schodów i innych nietypowych mebli:\n• możesz je nadal klasyfikować jako LEAD,\n• masz zbierać i uzupełniać dane,\n• NIE wolno Ci wykonywać konkretnej wyceny ani używać nodeCalculator do liczenia pełnej ceny – jedynie informujesz, że szczegółową wycenę przygotujemy ręcznie.\n\n⸻\n\nTOOL USAGE RULES (CRITICAL)\n\nLEAD (99% przypadków)\n\nZawsze jako pierwszy krok wywołujesz getLead(threadId).\n\nJeśli lead istnieje → używasz updateLead, ale TYLKO dla brakujących lub zmienionych danych.\nJeśli lead nie istnieje → używasz saveLead, zapisując threadId.\n\nJeśli dane dla produktu z grupy (stół/biurko, krzesło, szafa) są kompletne lub w dopuszczalnych widełkach → MUSISZ wywołać getPricing, a następnie nodeCalculator.\n\nPo wycenie:\n• zapisujesz lead,\n• generujesz HTML,\n• wysyłasz go przez sendEmail.\n\nOFERTA (dostawcy B2B)\n\n• używasz wyłącznie saveOffer,\n• NIE wysyłasz odpowiedzi email,\n• nie używasz getLead, updateLead, saveLead, getPricing ani nodeCalculator.\n\nRESZTA\n\n• ignorujesz całkowicie,\n• nie wysyłasz odpowiedzi email,\n• nie wywołujesz żadnych narzędzi.\n\n⸻\n\nZAKAZY NARZĘDZI\n\n• Nigdy nie odpowiadaj bez użycia właściwych narzędzi.\n• Nigdy nie generuj cen ani terminów bez sekwencji getPricing + nodeCalculator.\n• Nigdy nie wykonuj ręcznych obliczeń — wszystkie obliczenia finansowe musi wykonać nodeCalculator.\n• Nigdy nie zapisuj leadów jako „Oferta”.\n• Nigdy nie zmieniaj tematu emaila.\n• Nigdy nie używaj materiałów spoza Cennika.\n• Zawsze stosuj najbardziej restrykcyjną zasadę.\n\n⸻\n\nKLASYFIKACJA WIADOMOŚCI\n\nLEAD – zapytania o meble, projekty, wyceny, wymiary, materiały, kuchnie, garderoby, zabudowy.\nOFERTA – dostawcy B2B.\nRESZTA – newslettery, reklamy, spam.\n\n⸻\n\nGREETING PROTOCOL\n\nWykryj język.\nUstal imię według kolejności: podpis → zwrot końcowy → from.name → treść maila.\nJeśli brak pewności → neutralne powitanie.\n\nPowitanie PL: „Dzień dobry,”\nPowitanie EN: „Hello,”\n\nZakazy:\n• Nie zgaduj imienia.\n• Nie używaj „Klient”, „User”.\n\n⸻\n\nEKSTRAKCJA DANYCH (KLUCZOWE POD WYCENĘ)\n\nDla każdego produktu osobno wyciągaj:\n• typ produktu,\n• rodzaj drewna (dokładnie z Cennika),\n• długość, szerokość, głębokość/wysokość w cm,\n• ilość sztuk,\n• poduszka dla krzeseł (tak/nie),\n• rodzaj nóg dla stołów/biurek,\n• transport,\n• budżet (jeśli podany).\n\nZasady:\n• możesz konwertować mm/metry na cm,\n• jeśli brakuje rodzaju drewna, ilości lub min. dwóch wymiarów → MUSISZ dopytać,\n• dla krzeseł MUSISZ ustalić poduszkę,\n• rodzaj nóg może być brakujący → wykonujesz wstępną wycenę.\n\n⸻\n\nKUCHNIE / GARDEROBY / ZABUDOWY – BEZ AUTOMATYCZNEJ WYCENY\n\n• zbierz dane,\n• zapisz lead,\n• NIE używaj nodeCalculator,\n• w HTML napisz, że przygotujemy indywidualną wycenę po analizie.\n\n⸻\n\nCHAOTYCZNE WIADOMOŚCI – ZASADY\n\n• możesz uśredniać wymiary,\n• jeśli coś jest niejednoznaczne → dopytaj,\n• dla blatów zawsze zbieraj długość, szerokość, drewno.\n\n⸻\n\nBUDŻET – PROTOKÓŁ\n\nJeśli: typ + min. jeden wymiar + budżet są dostępne →\n• pobierasz getPricing,\n• wywołujesz nodeCalculator,\n• oceniasz dopasowanie do budżetu,\n• proponujesz alternatywy (również liczone nodeCalculator).\n\n⸻\n\nWYCENA – PROTOKÓŁ STANDARDOWY (getPricing + nodeCalculator)\n\nMożesz wykonać wycenę tylko gdy:\n• dane kompletne lub w widełkach,\n• pobrano Cennik,\n• używasz nodeCalculator do wszystkich obliczeń.\n\nPrzekazujesz:\n• typ mebla,\n• rodzaj drewna,\n• długość/szerokość/głębokość (cm),\n• ilość sztuk,\n• poduszka (true/false),\n• rodzaj nóg (jeśli jest),\n• stawki cenowe z getPricing.\n\nnodeCalculator zwraca:\n• koszt materiału,\n• ewentualne dopłaty,\n• koszt końcowy.\n\nWynik tdemo-usera do pola „Szacowany koszt (PLN)” i „Szacowany czas (dni)”.\n\nZakazy:\n• nigdy nie licz samemu,\n• jedynym źródłem kosztu jest nodeCalculator.\n\n⸻\n\nZASADY PRZEKAZYWANIA RÓWNAŃ DO nodeCalculator (CRITICAL)\n\nAgent NIGDY nie wykonuje matematyki.\nAgent PRZEKAZUJE równanie + dane wejściowe do nodeCalculator.\n\n1) Stoły i biurka – równanie\n\ncena = (długość_m × szerokość_m × cena_za_m2_drewna) + cena_nóg\n\nCena_nóg = pozycja „Drewniane nogi (4 szt)” lub „Metalowe nogi (4 szt)”.\n\n2) Szafy – równanie\n\ncena = (długość_m × szerokość_m × głębokość_m × cena_za_m2_drewna)\n\n3) Krzesła – równania\n\nBez poduszki\n\ncena = cena_krzesła_z_cennika\n\nZ poduszką\n\ncena = cena_krzesła_z_cennika + cena_poduszki\n\nFORMAT danych przekazywanych do nodeCalculator\n\nAgent musi przekazać:\n\n{\n  \"typ_mebla\": \"...\",\n  \"rodzaj_drewna\": \"...\",\n  \"długość_m\": number,\n  \"szerokość_m\": number,\n  \"głębokość_m\": number | null,\n  \"ilość\": number,\n  \"poduszka\": true/false,\n  \"rodzaj_nóg\": \"...\",\n  \"cena_za_m2_drewna\": number,\n  \"cena_krzesła\": number,\n  \"cena_poduszki\": number,\n  \"cena_nóg\": number,\n  \"równanie\": \"...\"\n}\n\nRównanie musi być jednym z trzech powyższych.\n\n⸻\n\nFORMAT HTML (OUTPUT FORMAT)\n\nHTML:\n\n<p>[Powitanie]</p>\n<p>[Krótka odpowiedź / podsumowanie / dopytanie / oferta]</p>\n<p>[Parametry projektu lub prośba o dane]</p>\n<p>Z pozdrowieniami,<br>Carpenter Bot</p>\n\nZasady:\n• profesjonalnie, jasno, bez Markdown,\n• bez templatów technicznych,\n• nie zmieniasz tematu wiadomości.\n\n⸻\n\nERRORS\n\nJeśli narzędzie zwróci błąd → odpowiedź:\n\n„Wystąpił błąd techniczny. Proszę spróbować ponownie za kilka minut.”\n\nBez cen, terminów, parametrów.\n\n⸻\n\nOSTATECZNE ZAKAZY\n\n• Nigdy nie używaj pamięci rozmowy.\n• Nigdy nie twórz danych, których nie ma.\n• Nigdy nie odpowiadaj bez narzędzi, jeśli są wymagane.\n• Nigdy nie używaj materiałów spoza Cennika.\n• Nigdy nie generuj kosztów bez getPricing + nodeCalculator.\n• Nigdy nie deklaruj użycia narzędzia bez realnego wywołania.\n• Zawsze stosuj najbardziej restrykcyjną zasadę.",
+            "returnIntermediateSteps": true
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          320,
+          80
+        ],
+        "id": "731f95ba-6187-4431-8f6e-85c5554ec2ee",
+        "name": "AI Agent"
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Carpenter_Bot",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 1012649340,
+            "mode": "list",
+            "cachedResultName": "Cennik",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=1012649340"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "typeVersion": 4.7,
+        "position": [
+          432,
+          432
+        ],
+        "id": "89f0f926-caf6-4ada-802b-a98d9e0c61f1",
+        "name": "getPricing",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "RW7KzWTgbJbEnOTB",
+            "name": "CARPENTER_BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Wiadomość powinna być profesjonalna i miła, używaj formy bez osobowych albo jak już się zwracasz per Pan/Pani to używaj formy \"Panu/Pani\".\nZadbaj o przejrzystą formę wiadmości, czyli na o odstępach między nagłówkiem, oraz przed stopką. Struktura ma być przejrzysta i czytelna.",
+          "operation": "reply",
+          "messageId": "={{ $json.body.ThreadID }}",
+          "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmailTool",
+        "typeVersion": 2.1,
+        "position": [
+          944,
+          288
+        ],
+        "id": "9b792371-a7e4-4a3a-8c00-534aab12a6d3",
+        "name": "sendEmail",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "t8JfZ4E9FbFcya69",
+            "name": "CARPENTER_BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Zapisuje dane z odfiltrowane z wiadomości zakwalifikowanej jako **Oferta** w arkuszu, zgodnie z nazwami kolumn. ",
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Carpenter_Bot",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 916995497,
+            "mode": "list",
+            "cachedResultName": "Oferty",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=916995497"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Data": "={{ new Date().toLocaleString(\"pl-PL\", { timeZone: \"Europe/Warsaw\" }).replace(\",\", \"\") }}",
+              "Nazwa firmy": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nazwa_firmy', ``, 'string') }}",
+              "Email kontaktowy": "={{ $json.body.Email }}",
+              "Co oferuje": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Co_oferuje', ``, 'string') }}",
+              "Cena (jeśli podana)": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Cena__je_li_podana_', ``, 'string') }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "Data",
+                "displayName": "Data",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Nazwa firmy",
+                "displayName": "Nazwa firmy",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Email kontaktowy",
+                "displayName": "Email kontaktowy",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Co oferuje",
+                "displayName": "Co oferuje",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Cena (jeśli podana)",
+                "displayName": "Cena (jeśli podana)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "typeVersion": 4.7,
+        "position": [
+          880,
+          432
+        ],
+        "id": "77e6eed6-2869-4523-b281-88fe05df7921",
+        "name": "saveOffer",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "RW7KzWTgbJbEnOTB",
+            "name": "CARPENTER_BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "=Zapisuje dane z odfiltrowane z wiadomości zakwalifikowanej jako **LEAD/Zamówienie** w arkuszu, zgodnie z nazwami kolumn. \n\nDATA MA BYĆ ZAPISWYANA W FORMACIE DD.MM.YYYY",
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Carpenter_Bot",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 1082356781,
+            "mode": "list",
+            "cachedResultName": "Leady",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=1082356781"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Data": "={{ new Date().toLocaleString(\"pl-PL\", { timeZone: \"Europe/Warsaw\" }).replace(\",\", \"\") }}",
+              "Nazwa klienta": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nazwa_klienta', ``, 'string') }}",
+              "Email": "={{ $json.body.Email }}",
+              "Opis zamówienia": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Opis_zam_wienia', ``, 'string') }}",
+              "Szacowany koszt (PLN)": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Szacowany_koszt__PLN_', ``, 'string') }}",
+              "Szacowany czas (dni)": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Szacowany_czas__dni_', ``, 'string') }}",
+              "ThreadID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ThreadID', ``, 'string') }}",
+              "MessageID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('MessageID', ``, 'string') }}",
+              "Temat": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Temat', ``, 'string') }}",
+              "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', ``, 'string') }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "ThreadID",
+                "displayName": "ThreadID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "MessageID",
+                "displayName": "MessageID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Data",
+                "displayName": "Data",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Nazwa klienta",
+                "displayName": "Nazwa klienta",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Email",
+                "displayName": "Email",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Temat",
+                "displayName": "Temat",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Opis zamówienia",
+                "displayName": "Opis zamówienia",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Szacowany koszt (PLN)",
+                "displayName": "Szacowany koszt (PLN)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Szacowany czas (dni)",
+                "displayName": "Szacowany czas (dni)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "displayName": "Status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "typeVersion": 4.7,
+        "position": [
+          768,
+          432
+        ],
+        "id": "24aab7c0-3ddd-405b-a477-6832c4e404d8",
+        "name": "saveLead",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "RW7KzWTgbJbEnOTB",
+            "name": "CARPENTER_BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Pobierz dane na temat Leadów ",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Carpenter_Bot",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 1082356781,
+            "mode": "list",
+            "cachedResultName": "Leady",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=1082356781"
+          },
+          "filtersUI": {
+            "values": [
+              {
+                "lookupColumn": "ThreadID",
+                "lookupValue": "={{ $json.body.ThreadID }}"
+              }
+            ]
+          },
+          "options": {
+            "returnFirstMatch": true
+          }
+        },
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "typeVersion": 4.7,
+        "position": [
+          320,
+          432
+        ],
+        "id": "77568c75-bd08-4626-92ae-f5b8a8b1a554",
+        "name": "getLead",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "RW7KzWTgbJbEnOTB",
+            "name": "CARPENTER_BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Dopisuje dane zamówienia do tych, które juz sa arkuszu\n\nDATA MA BYĆ ZAPISYWANA W FORMACIE DD.MM.YYYY",
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Carpenter_Bot",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 1082356781,
+            "mode": "list",
+            "cachedResultName": "Leady",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=1082356781"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Data": "={{ new Date().toLocaleString(\"pl-PL\", { timeZone: \"Europe/Warsaw\" }).replace(\",\", \"\") }}",
+              "Opis zamówienia": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Opis_zam_wienia', ``, 'string') }}",
+              "Szacowany koszt (PLN)": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Szacowany_koszt__PLN_', ``, 'string') }}",
+              "Szacowany czas (dni)": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Szacowany_czas__dni_', ``, 'string') }}",
+              "ThreadID": "={{ $json.body.ThreadID }}",
+              "MessageID": "={{ $json.body.MessageID }}",
+              "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', ``, 'string') }}"
+            },
+            "matchingColumns": [
+              "ThreadID"
+            ],
+            "schema": [
+              {
+                "id": "ThreadID",
+                "displayName": "ThreadID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "MessageID",
+                "displayName": "MessageID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Data",
+                "displayName": "Data",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Nazwa klienta",
+                "displayName": "Nazwa klienta",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Email",
+                "displayName": "Email",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Temat",
+                "displayName": "Temat",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Opis zamówienia",
+                "displayName": "Opis zamówienia",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Szacowany koszt (PLN)",
+                "displayName": "Szacowany koszt (PLN)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Szacowany czas (dni)",
+                "displayName": "Szacowany czas (dni)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "displayName": "Status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "row_number",
+                "displayName": "row_number",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true,
+                "readOnly": true,
+                "removed": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "typeVersion": 4.7,
+        "position": [
+          656,
+          432
+        ],
+        "id": "a7e65b57-e718-4eac-b079-cf432ddd970d",
+        "name": "updateLead",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "RW7KzWTgbJbEnOTB",
+            "name": "CARPENTER_BOT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4.1-mini"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          128,
+          432
+        ],
+        "id": "94586ec8-d921-49b0-a279-c61c56c27086",
+        "name": "OpenAI Chat Model",
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "MyAgency"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          96,
+          80
+        ],
+        "id": "4b9e72ee-c44c-422b-ab3d-cc881969a341",
+        "name": "Webhook",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          672,
+          80
+        ],
+        "id": "3f89b117-dbc0-49e5-a3b1-91fb1b326c70",
+        "name": "Respond to Webhook"
+      },
+      {
+        "parameters": {},
+        "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+        "typeVersion": 1,
+        "position": [
+          544,
+          432
+        ],
+        "id": "db5e726a-1a9c-4379-8b5c-cdd49be650ab",
+        "name": "Calculator"
+      }
+    ],
+    "connections": {
+      "getPricing": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "sendEmail": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "saveOffer": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "saveLead": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "getLead": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "updateLead": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculator": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": {
+      "node:Gmail Trigger": {
+        "Gmail Trigger": {
+          "lastTimeChecked": 1764585482,
+          "possibleDuplicates": [
+            "19ad97dd7fcb9a92"
+          ]
+        }
+      }
+    },
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "e2d5e3d2-6db6-4838-adfb-0a8bfa5ebffa",
+    "activeVersionId": null,
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2025-12-01T09:13:27.859Z",
+        "createdAt": "2025-12-01T09:13:27.859Z",
+        "role": "workflow:owner",
+        "workflowId": "hIVKZfZbiYyfm5rR",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

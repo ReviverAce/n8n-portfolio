@@ -1,0 +1,573 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.065Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "vc8vc7Z6tuluzYVJ",
+    "workflow_name": "[PROD] Client-Alpha - ERROR HANDLING",
+    "active": true,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-09T13:16:14.655Z",
+    "createdAt": "2026-02-09T12:59:22.409Z",
+    "id": "vc8vc7Z6tuluzYVJ",
+    "name": "[PROD] Client-Alpha - ERROR HANDLING",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "5f3e61b3-45fa-425a-816d-9bd53998f493",
+        "name": "Error Trigger",
+        "type": "n8n-nodes-base.errorTrigger",
+        "typeVersion": 1,
+        "position": [
+          -592,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "al-1",
+                "name": "project_name",
+                "value": "Client-Alpha",
+                "type": "string"
+              },
+              {
+                "id": "al-2",
+                "name": "workflow_name",
+                "value": "={{ $json.workflow.name }}",
+                "type": "string"
+              },
+              {
+                "id": "al-3",
+                "name": "execution_id",
+                "value": "={{ $json.execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-4",
+                "name": "execution_url",
+                "value": "={{ $json.execution.url }}",
+                "type": "string"
+              },
+              {
+                "id": "al-5",
+                "name": "status",
+                "value": "error",
+                "type": "string"
+              },
+              {
+                "id": "al-6",
+                "name": "error_message",
+                "value": "={{ $json.execution.error.message }}",
+                "type": "string"
+              },
+              {
+                "id": "al-7",
+                "name": "time_saved_minutes",
+                "value": "=0",
+                "type": "number"
+              },
+              {
+                "id": "al-8",
+                "name": "metadata",
+                "value": "={{ JSON.stringify({ node_name: $json.execution.lastNodeExecuted, workflow_id: $json.workflow.id, timestamp: $now.toISO() }) }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "557761dd-faff-47e8-8370-af331f5e47e5",
+        "name": "Prepare for automation_logs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -368,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "tableId": "automation_logs",
+          "dataToSend": "autoMapInputData"
+        },
+        "id": "5d28aae7-8ed6-46df-8f0f-d4f7afc5621b",
+        "name": "Log to automation_logs",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          -144,
+          144
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "LyBj0lWVGeJXEyUf",
+            "name": "[Client-Alpha] SUPABASE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://your-instance.app.n8n.cloud/webhook/support-check",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ api_key: \"ba7a542a-ffa2-47b6-ac4f-9f0f6c6c43c8\" }) }}",
+          "options": {}
+        },
+        "id": "f21db331-14f0-4d76-ba2d-81eebde456fe",
+        "name": "Check Support Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          80,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-1",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.support_active }}",
+                "rightValue": ""
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "810976a9-98e5-47c1-ae2b-a34b2b7ba9d9",
+        "name": "IF Support Active",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          304,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "sendTo": "info@example-agency.com",
+          "subject": "=[n8n Error] {{ $('Prepare for automation_logs').item.json.workflow_name }}",
+          "message": "=<h2>Workflow Error Alert</h2>\n<p><strong>Project:</strong> {{ $('Prepare for automation_logs').item.json.project_name }}</p>\n<p><strong>Workflow:</strong> {{ $('Prepare for automation_logs').item.json.workflow_name }}</p>\n<p><strong>Error:</strong> {{ $('Prepare for automation_logs').item.json.error_message }}</p>\n<p><a href=\"{{ $('Prepare for automation_logs').item.json.execution_url }}\">View Execution Details</a></p>",
+          "options": {}
+        },
+        "id": "a0f3dbbb-d8bc-47ae-a367-507dd5c63949",
+        "name": "Send MyAgency Email Notification",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          544,
+          16
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "OFVvKTJMK5GQYalJ",
+            "name": "[AGENCY] GMAIL - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sendTo": "info@example-agency.com",
+          "subject": "=[n8n Error] {{ $('Prepare for automation_logs').item.json.workflow_name }} cleint path",
+          "message": "=<h2>Workflow Error Alert</h2>\n<p><strong>Project:</strong> {{ $('Prepare for automation_logs').item.json.project_name }}</p>\n<p><strong>Workflow:</strong> {{ $('Prepare for automation_logs').item.json.workflow_name }}</p>\n<p><strong>Error:</strong> {{ $('Prepare for automation_logs').item.json.error_message }}</p>\n<p><a href=\"{{ $('Prepare for automation_logs').item.json.execution_url }}\">View Execution Details</a></p>",
+          "options": {}
+        },
+        "id": "b044100b-9f2f-4a22-9274-9da40cb9b94d",
+        "name": "Send Client Email Notification1",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          544,
+          224
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "OFVvKTJMK5GQYalJ",
+            "name": "[AGENCY] GMAIL - MAIN"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Error Trigger": {
+        "main": [
+          [
+            {
+              "node": "Prepare for automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare for automation_logs": {
+        "main": [
+          [
+            {
+              "node": "Log to automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log to automation_logs": {
+        "main": [
+          [
+            {
+              "node": "Check Support Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Support Status": {
+        "main": [
+          [
+            {
+              "node": "IF Support Active",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Support Active": {
+        "main": [
+          [
+            {
+              "node": "Send MyAgency Email Notification",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Client Email Notification1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": false,
+      "callerPolicy": "workflowsFromSameOwner",
+      "timeSavedMode": "fixed",
+      "errorWorkflow": "qbOSaENwdtXKQhbo"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "f2095ca7-2412-45ec-b99d-6eba0f002796",
+    "activeVersionId": "f2095ca7-2412-45ec-b99d-6eba0f002796",
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-02-09T12:59:22.413Z",
+        "createdAt": "2026-02-09T12:59:22.413Z",
+        "role": "workflow:owner",
+        "workflowId": "vc8vc7Z6tuluzYVJ",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": {
+      "updatedAt": "2026-02-09T13:15:54.000Z",
+      "createdAt": "2026-02-09T13:15:37.391Z",
+      "versionId": "f2095ca7-2412-45ec-b99d-6eba0f002796",
+      "workflowId": "vc8vc7Z6tuluzYVJ",
+      "nodes": [
+        {
+          "parameters": {},
+          "id": "5f3e61b3-45fa-425a-816d-9bd53998f493",
+          "name": "Error Trigger",
+          "type": "n8n-nodes-base.errorTrigger",
+          "typeVersion": 1,
+          "position": [
+            -592,
+            144
+          ]
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "al-1",
+                  "name": "project_name",
+                  "value": "Client-Alpha",
+                  "type": "string"
+                },
+                {
+                  "id": "al-2",
+                  "name": "workflow_name",
+                  "value": "={{ $json.workflow.name }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-3",
+                  "name": "execution_id",
+                  "value": "={{ $json.execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-4",
+                  "name": "execution_url",
+                  "value": "={{ $json.execution.url }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-5",
+                  "name": "status",
+                  "value": "error",
+                  "type": "string"
+                },
+                {
+                  "id": "al-6",
+                  "name": "error_message",
+                  "value": "={{ $json.execution.error.message }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-7",
+                  "name": "time_saved_minutes",
+                  "value": "=0",
+                  "type": "number"
+                },
+                {
+                  "id": "al-8",
+                  "name": "metadata",
+                  "value": "={{ JSON.stringify({ node_name: $json.execution.lastNodeExecuted, workflow_id: $json.workflow.id, timestamp: $now.toISO() }) }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "557761dd-faff-47e8-8370-af331f5e47e5",
+          "name": "Prepare for automation_logs",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            -368,
+            144
+          ]
+        },
+        {
+          "parameters": {
+            "tableId": "automation_logs",
+            "dataToSend": "autoMapInputData"
+          },
+          "id": "5d28aae7-8ed6-46df-8f0f-d4f7afc5621b",
+          "name": "Log to automation_logs",
+          "type": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "position": [
+            -144,
+            144
+          ],
+          "credentials": {
+            "supabaseApi": {
+              "id": "LyBj0lWVGeJXEyUf",
+              "name": "[Client-Alpha] SUPABASE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "https://your-instance.app.n8n.cloud/webhook/support-check",
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ api_key: \"ba7a542a-ffa2-47b6-ac4f-9f0f6c6c43c8\" }) }}",
+            "options": {}
+          },
+          "id": "f21db331-14f0-4d76-ba2d-81eebde456fe",
+          "name": "Check Support Status",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            80,
+            144
+          ]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "cond-1",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.support_active }}",
+                  "rightValue": ""
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "810976a9-98e5-47c1-ae2b-a34b2b7ba9d9",
+          "name": "IF Support Active",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.2,
+          "position": [
+            304,
+            144
+          ]
+        },
+        {
+          "parameters": {
+            "sendTo": "info@example-agency.com",
+            "subject": "=[n8n Error] {{ $('Prepare for automation_logs').item.json.workflow_name }}",
+            "message": "=<h2>Workflow Error Alert</h2>\n<p><strong>Project:</strong> {{ $('Prepare for automation_logs').item.json.project_name }}</p>\n<p><strong>Workflow:</strong> {{ $('Prepare for automation_logs').item.json.workflow_name }}</p>\n<p><strong>Error:</strong> {{ $('Prepare for automation_logs').item.json.error_message }}</p>\n<p><a href=\"{{ $('Prepare for automation_logs').item.json.execution_url }}\">View Execution Details</a></p>",
+            "options": {}
+          },
+          "id": "a0f3dbbb-d8bc-47ae-a367-507dd5c63949",
+          "name": "Send MyAgency Email Notification",
+          "type": "n8n-nodes-base.gmail",
+          "typeVersion": 2.2,
+          "position": [
+            544,
+            16
+          ],
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "OFVvKTJMK5GQYalJ",
+              "name": "[AGENCY] GMAIL - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "sendTo": "info@example-agency.com",
+            "subject": "=[n8n Error] {{ $('Prepare for automation_logs').item.json.workflow_name }} cleint path",
+            "message": "=<h2>Workflow Error Alert</h2>\n<p><strong>Project:</strong> {{ $('Prepare for automation_logs').item.json.project_name }}</p>\n<p><strong>Workflow:</strong> {{ $('Prepare for automation_logs').item.json.workflow_name }}</p>\n<p><strong>Error:</strong> {{ $('Prepare for automation_logs').item.json.error_message }}</p>\n<p><a href=\"{{ $('Prepare for automation_logs').item.json.execution_url }}\">View Execution Details</a></p>",
+            "options": {}
+          },
+          "id": "b044100b-9f2f-4a22-9274-9da40cb9b94d",
+          "name": "Send Client Email Notification1",
+          "type": "n8n-nodes-base.gmail",
+          "typeVersion": 2.2,
+          "position": [
+            544,
+            224
+          ],
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "OFVvKTJMK5GQYalJ",
+              "name": "[AGENCY] GMAIL - MAIN"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Error Trigger": {
+          "main": [
+            [
+              {
+                "node": "Prepare for automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare for automation_logs": {
+          "main": [
+            [
+              {
+                "node": "Log to automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Log to automation_logs": {
+          "main": [
+            [
+              {
+                "node": "Check Support Status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Support Status": {
+          "main": [
+            [
+              {
+                "node": "IF Support Active",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "IF Support Active": {
+          "main": [
+            [
+              {
+                "node": "Send MyAgency Email Notification",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Send Client Email Notification1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "authors": "MyAgency AI",
+      "name": "Version f2095ca7",
+      "description": "",
+      "autosaved": true
+    },
+    "tags": []
+  }
+}

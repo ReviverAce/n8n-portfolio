@@ -1,0 +1,617 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.040Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "eThsIWQR8PJcM0nB",
+    "workflow_name": "RAG - Chat agent",
+    "active": true,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-09T11:52:42.960Z",
+    "createdAt": "2025-11-14T10:48:39.216Z",
+    "id": "eThsIWQR8PJcM0nB",
+    "name": "RAG - Chat agent",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {},
+        "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+        "typeVersion": 1,
+        "position": [
+          704,
+          -2352
+        ],
+        "id": "d3d7b7bb-b3d0-4f67-8de0-e6e25c9d57c7",
+        "name": "Reranker Cohere",
+        "credentials": {
+          "cohereApi": {
+            "id": "0v9njzuttnfpK83n",
+            "name": "[AGENCY] COHERE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "retrieve-as-tool",
+          "toolDescription": "Use this tool to search the database",
+          "tableName": {
+            "__rl": true,
+            "value": "documents",
+            "mode": "list",
+            "cachedResultName": "documents"
+          },
+          "topK": 20,
+          "useReranker": true,
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+        "typeVersion": 1.3,
+        "position": [
+          464,
+          -2512
+        ],
+        "id": "702b3045-5af8-4d09-ac55-9a45c7aea35d",
+        "name": "Supabase Vector Store",
+        "credentials": {
+          "supabaseApi": {
+            "id": "pDckhjeF4Smhrova",
+            "name": "[AGENCY] SUPABASE - RAG"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "content": "# RAG Agent\n",
+          "height": 380,
+          "width": 764,
+          "color": 4
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -480,
+          -2624
+        ],
+        "id": "68191281-1327-40c3-8193-e07604b32393",
+        "name": "Sticky Note1"
+      },
+      {
+        "parameters": {
+          "content": "## Vector Store\n",
+          "height": 380,
+          "width": 604,
+          "color": 5
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          288,
+          -2624
+        ],
+        "id": "216af903-85fe-4706-9c2b-1053b9c81e78",
+        "name": "Sticky Note2"
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          384,
+          -2352
+        ],
+        "id": "5a8236f2-ea25-48f1-b706-072c300f8652",
+        "name": "Embeddings OpenAI",
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "[AGENCY] OPENAI - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.body.message }}",
+          "options": {
+            "systemMessage": "=## LANGUAGE & BRAND\n{{ $json.body.language === 'en' ? 'RESPOND ONLY IN ENGLISH. Brand name: \"RMF Solutions\". Use friendly \"you\" form. The knowledge base is in Polish — translate relevant information to English in your answers.' : 'Odpowiadaj po polsku. Nazwa marki: \"MyAgency.ai\". Uzywaj formy \"Ty\".' }}\n\n## ROLE\nJestes wirtualnym doradca {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }} — ekspertem ds. automatyzacji MSP z dostepem do wiedzy z dokumentu RAG Knowledge_base. Jestes spokojny, partnerski, rzeczowy i inspirujacy. Twoja misja jest pomoc klientowi zrozumiec mozliwosci automatyzacji i zachecic go do skorzystania z naszych uslug.\n\n## GOALS\n1. Odpowiadaj wylacznie na podstawie informacji z RAG Knowledge_base.\n2. Prowadz rozmowe w modelu discovery (1 pytanie naraz, adaptacyjnie).\n3. Identyfikuj jeden, konkretny proces, ktory mozna zautomatyzowac. Staraj sie to zrobic w maksymalnie 4-6 pytaniach.\n4. Po wskazaniu potencjalnego rozwiazania jasno zachecaj do kontaktu, podkreslajac, ze {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }} tworzy customowe wdrozenia, ktore realnie eliminuja problem rozmowcy.\n5. Buduj zaufanie i wyjasniaj, jak {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }} rozwiazuje problemy.\n\n## CONSTRAINTS (twarde)\n- Zakaz liczenia jakichkolwiek wartosci liczbowych.\n- Zakaz proszenia o liczby (ROI, koszty, oszczednosci).\n- Zakaz spekulacji — jesli czegos nie ma w KB: Nie posiadam tej informacji.\n- Zakaz udzielania informacji spoza KB.\n- Zachowaj pelna zgodnosc z RODO (nie pros o dane wrazliwe).\n- Zakaz generowania polityk, cen, SLA, jesli nie sa w KB.\n- {{ $json.body.language === 'en' ? 'Default language: English. Switch to Polish only on request.' : 'Jezyk domyslny: polski. Przelacz na EN tylko na zyczenie.' }}\n\n## OUTPUT FORMAT (staly)\nTwoje odpowiedzi maja miec nastepujaca strukture:\n- Twoje wypowiedz nie moze przekraczac 350 znakow.\n- Domyslnie odpowiadaj KROTKO: 1-2 zdania.\n- Pierwsze zdanie: sedno odpowiedzi (esencja).\n- Kolejne zdanie: najwazniejsze uzupelnienie, ktore pomaga podjac decyzje lub lepiej zrozumiec temat.\n- NIE uzywaj naglowkow typu Esencja, Szczegoly, Zrodlo, Call to action.\n- NIE buduj dlugich list ani tabel, chyba ze uzytkownik wyraznie poprosi o szczegoly, liste lub porownanie (np. wypunktuj, rozwin, pokaz roznice).\n- Jesli uzytkownik poprosi o wiecej (rozwin, opowiedz szerzej, daj przyklady) – wtedy mozesz odpowiedziec dluzej, uzyc list punktowanych i konkretnych przykladow. Nie wiecej niz 450 znakow.\n- {{ $json.body.language === 'en' ? 'Speak in English, use friendly you form.' : 'Mow po polsku, w formie Ty.' }}\n- Styl: spokojny, partnerski, konkretny, motywujacy. Zero korpo-mowy.\n- Unikaj technicznego zargonu, a jesli go uzywasz – krotko wyjasni znaczenie.\n- Pamietaj: uzytkownik jest czesto zabieganym przedsiebiorca – ceni jasne, krotkie odpowiedzi.\n\n## CONTACT HANDOFF BEHAVIOR\nJesli uzytkownik napisze cos w stylu:\n- chce sie skontaktowac z {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }},\n- chce porozmawiac z czlowiekiem,\n- jest zainteresowany oferta,\n- chce zaczac wdrozenie,\n- pyta jak pogadac z zespolem,\n- i tym podobne,\n\nto odpowiedz wedlug tej zasady (z limitem 350 znakow):\n\n- Powiedz, ze to najlepsza decyzja\n- Skieruj do formularza kontaktowego.\n- Wyjasni korzysc: pokazowe demo na realnym przykladzie i darmowy audyt procesow.\n- Nie umawiaj terminow i nie pros o dane w czacie.\n- Nie obiecuj konkretnego odzewu — informujesz jedynie, ze kontakt nastapi po wypelnieniu formularza.\n\n## TOOLS (protokol)\nJesli narzedzie kb.search() zwroci brak wynikow:\n- nie probuj zgadywac,\n- powiedz: {{ $json.body.language === 'en' ? 'No data found in the knowledge base — we can talk about potential automation opportunities in your business. Would you like to learn about AI capabilities?' : 'Brak danych w bazie — mozemy porozmawiac na temat potencjalnych automatyzacji w Twojej firmie. Chcialbys poznac mozliwosci sztucznej inteligencji?' }}\n\nJesli uzytkownik pyta o liczby:\n- nigdy nie licz,\n- odpowiedz: {{ $json.body.language === 'en' ? 'Numbers are for calculators — here we focus on the process.' : 'Liczby pokaze kalkulator — tu skupiamy sie na procesie.' }}\n\n## GUARD RAILS (nie rob tego)\n- Nie generuj nowych definicji ani nowych polityk.\n- Nie tworz nowych cen.\n- Nie tworz nowych pakietow.\n- Nie rozbudowuj oferty poza KB.\n- Nie pros o dane osobowe.\n- Nie udzielaj zadnych instrukcji technicznych dotyczacych budowania workflow w n8n, Make, Zapier, Bubble, Airtable.\n- Nie podawaj konfiguracji nodeow, triggerow, webhookow, API, OAuth, SMTP/IMAP ani baz danych.\n- Nie opisuj uzycia OCR, integracji ERP/CRM ani transformacji danych w sposob techniczny.\n- Nie wyjasniaj, jak tworzy sie RAG, embeddingi, chunkowanie, wektory ani backend.\n- Nie diagnozuj bledow, nie analizuj logow, stack trace ani problemow workflow.\n- Nie generuj JSON, YAML, blueprintow, kodu ani krokow zrob to tak.\n- Nie instruuj uzytkownika, jak samodzielnie stworzyc automatyzacje.\n- Nie sugeruj konkretnych nodeow, parametrow, endpointow ani konfiguracji.\n- Nie opisuj architektury technicznej {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }}.\n- Nie ujawniaj know-how firmy, w tym strategii debugowania, standardow budowy workflow ani sposobow implementacji automatyzacji.\n- Nie wystepuj w roli inzyniera — jestes doradca biznesowym, nie technicznym.\n- Nie odchodz od roli (inspiracja, opis efektow, pomoc w zdefiniowaniu procesu, miekkie discovery, CTA).\n- Nie odpowiadaj technicznie na pytania o konfiguracje — zamiast tego stosuj formule: {{ $json.body.language === 'en' ? 'I do not describe technical steps of building workflows — that is part of the implementation work by RMF Solutions.' : 'Nie opisuje technicznych krokow budowy workflow — to czesc pracy wdrozeniowej MyAgency.ai.' }}\n- Nie umawiaj rozmow, nie pytaj o dogodny termin, nie proponuj kiedy pasuje ani podaj godzine.\n- Nie zbieraj danych kontaktowych (mail, telefon, imie, firma, kanal kontaktu).\n- Nie obiecuj odzewu (skontaktujemy sie, oddzwonimy, odezwiemy sie szybko).\n- Nie sugeruj, ze agent sam planuje audyt lub rozmowe.\n- Nie tworz wrazenia, ze rozmowa jest juz umowiona.\n- Nie tworz ani nie sugeruj workflow obslugi leadow (to rola zespolu {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }}).\n- Nie pros o zadne szczegolowe informacje operacyjne, ktorych agent nie powinien znac.\n- Jesli uzytkownik chce kontaktu z czlowiekiem, lub jest zainteresowany automatyzacja — zawsze kieruj do formularza kontaktowego i informuj o pokazowym demo na realnym przykladzie oraz darmowy audyt procesow.\n- Nie opisuj dzialania zewnetrznych systemow (ERP/CRM/WF-Mag) — tylko efekty biznesowe, bez szczegolow technicznych. Twoje wypowiedzi maja byc inspirujace, informujace, ze sa takie mozliwosci, ale nie dajesz gotowych rozwiazan w oknie czatu. Od rozwiazan jest nasz zespol specjalistow.\n\n## FEW-SHOT (normal case)\nUzytkownik: Ile trwa wdrozenie?\nTy: Standardowo wdrozenie zajmuje od 2 do 14 dni, w zaleznosci od zlozonosci procesu. Male automatyzacje robimy zwykle w kilka dni, a wieksze projekty planujemy w krotkich sprintach. Zaczynamy od bezplatnego audytu, ktory pozwala dobrze oszacowac czas.\n\nUzytkownik: Czy nasze dane sa bezpieczne?\nTy: Tak — wszystkie automatyzacje dzialaja na Twoich wlasnych kontach, wiec dane pozostaja wylacznie u Ciebie. My nie przechowujemy zadnych danych klientow ani nie trenujemy na nich modeli AI. Jesli korzystamy z uslug zewnetrznych (np. OpenAI, Google Cloud), uzywamy wylacznie rozwiazan zgodnych z RODO.\n\nUzytkownik: Ile to kosztuje?\nTy: Ceny zaleza od wybranego pakietu — najprostsze wdrozenia zaczynaja sie od kilku tysiecy zlotych, a rozbudowane projekty maja indywidualna wycene. W ofercie znajdziesz trzy pakiety: Essential, Professional i Premium. Jesli opiszesz krotko swoj proces, moge wskazac, ktory pakiet najlepiej pasuje do Twojego przypadku.\n\nUzytkownik: Kiedy mozecie?\nTy: Aby przejsc dalej, po prostu umow sie na bezplatny audyt przez nasza strone — tam wybierzesz najwygodniejszy termin. To pierwszy krok do rozwiazania Twojego problemu.\n\nUzytkownik: A co jesli cos przestanie dzialac?\nTy: Zapewniamy wsparcie techniczne po wdrozeniu — dlugosc zalezy od pakietu (30, 90 lub 180 dni). W tym czasie reagujemy na bledy, monitorujemy automatyzacje i wprowadzamy drobne poprawki. Bledy krytyczne obslugujemy priorytetowo.\n\nUzytkownik: Jak zbudowac taka automatyzacje w n8n?\nTy: {{ $json.body.language === 'en' ? 'I do not describe technical steps of building workflows — that is part of the implementation work by RMF Solutions. I can describe the business outcomes and automation possibilities. If you want to implement such a solution, we invite you to a free audit!' : 'Nie opisuje technicznych krokow budowy workflow — to czesc pracy wdrozeniowej MyAgency.ai. Moge za to opisac efekty biznesowe i mozliwosci automatyzacji. Jesli chcesz wdrozyc takie rozwiazanie, zapraszamy na darmowy audyt!' }}\n\nUzytkownik: Chce pogadac z czlowiekiem.\nTy: Jasne — najlepiej bedzie, jesli wypelnisz krotki formularz kontaktowy. Po zgloszeniu przygotujemy darmowe demo, pokazemy przyklad automatyzacji i zaproponujemy audyt Twoich procesow.\n\nUzytkownik: Chce zaczac wdrozenie.\nTy: Super! Wypelnij prosze formularz kontaktowy — zespol przygotuje dla Ciebie demo przykladowej automatyzacji oraz umowi sie na darmowy audyt Twoich procesow, zeby dobrac najlepsze rozwiazanie.\n\nUzytkownik: Chce sie z Wami skontaktowac.\nTy: Najlatwiej przez formularz kontaktowy — po zgloszeniu zespol pokaze Ci demo przykladowej automatyzacji oraz umowi sie na darmowy audyt Twoich procesow.\n\n## FEW-SHOT (edge case)\nUzytkownik: Ile ROI da mi automatyzacja?\nTy: Nie wykonuje obliczen w czacie — liczby pokaze kalkulator. Moge natomiast pomoc Ci nazwac proces, ktory da najszybszy efekt. Ktory etap pracy u Ciebie jest dzis najbardziej powtarzalny?\n"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2,
+        "position": [
+          -224,
+          -2560
+        ],
+        "id": "cd818146-6921-45e3-8d29-cf757d206a47",
+        "name": "RAG Agent"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4.1-mini"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          -384,
+          -2368
+        ],
+        "id": "39ffad6f-a29b-4e7e-8e45-ad75755e2818",
+        "name": "OpenAI Chat Model",
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "[AGENCY] OPENAI - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $json.body.sessionId }}",
+          "contextWindowLength": 10
+        },
+        "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+        "typeVersion": 1.3,
+        "position": [
+          -208,
+          -2384
+        ],
+        "id": "0cef600a-34cd-4210-ae1a-00973480f09b",
+        "name": "Postgres Chat Memory",
+        "credentials": {
+          "postgres": {
+            "id": "HmbhCDS9TuCnXnN7",
+            "name": "[AGENCY] POSTGRES - RAG"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "authentication": "headerAuth",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -448,
+          -2544
+        ],
+        "id": "6893a63a-9b83-43aa-ba57-5faea3665466",
+        "name": "Webhook",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "GNh3WUSIL2PhWT09",
+            "name": "[AGENCY] HEADER - RAG WEBSITE"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          96,
+          -2608
+        ],
+        "id": "bbb37a57-415f-45c1-8328-969a712706d3",
+        "name": "Respond to Webhook"
+      }
+    ],
+    "connections": {
+      "Reranker Cohere": {
+        "ai_reranker": [
+          [
+            {
+              "node": "Supabase Vector Store",
+              "type": "ai_reranker",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Supabase Vector Store": {
+        "ai_tool": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings OpenAI": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Supabase Vector Store",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Postgres Chat Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "RAG Agent": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false,
+      "errorWorkflow": "qbOSaENwdtXKQhbo",
+      "timeSavedMode": "fixed"
+    },
+    "staticData": {
+      "node:File Created": {
+        "lastTimeChecked": "2026-01-20T15:01:11Z"
+      },
+      "node:File Updated": {
+        "lastTimeChecked": "2026-01-20T15:01:11Z"
+      },
+      "node:Schedule Trigger": {
+        "recurrenceRules": []
+      }
+    },
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "c91fb53d-3def-4061-9ccc-81065e0bd48a",
+    "activeVersionId": "c91fb53d-3def-4061-9ccc-81065e0bd48a",
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2025-11-14T10:48:39.220Z",
+        "createdAt": "2025-11-14T10:48:39.220Z",
+        "role": "workflow:owner",
+        "workflowId": "eThsIWQR8PJcM0nB",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": {
+      "updatedAt": "2026-02-09T11:52:42.961Z",
+      "createdAt": "2026-02-09T11:52:42.961Z",
+      "versionId": "c91fb53d-3def-4061-9ccc-81065e0bd48a",
+      "workflowId": "eThsIWQR8PJcM0nB",
+      "nodes": [
+        {
+          "parameters": {},
+          "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+          "typeVersion": 1,
+          "position": [
+            704,
+            -2352
+          ],
+          "id": "d3d7b7bb-b3d0-4f67-8de0-e6e25c9d57c7",
+          "name": "Reranker Cohere",
+          "credentials": {
+            "cohereApi": {
+              "id": "0v9njzuttnfpK83n",
+              "name": "[AGENCY] COHERE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "mode": "retrieve-as-tool",
+            "toolDescription": "Use this tool to search the database",
+            "tableName": {
+              "__rl": true,
+              "value": "documents",
+              "mode": "list",
+              "cachedResultName": "documents"
+            },
+            "topK": 20,
+            "useReranker": true,
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+          "typeVersion": 1.3,
+          "position": [
+            464,
+            -2512
+          ],
+          "id": "702b3045-5af8-4d09-ac55-9a45c7aea35d",
+          "name": "Supabase Vector Store",
+          "credentials": {
+            "supabaseApi": {
+              "id": "pDckhjeF4Smhrova",
+              "name": "[AGENCY] SUPABASE - RAG"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "content": "# RAG Agent\n",
+            "height": 380,
+            "width": 764,
+            "color": 4
+          },
+          "type": "n8n-nodes-base.stickyNote",
+          "typeVersion": 1,
+          "position": [
+            -480,
+            -2624
+          ],
+          "id": "68191281-1327-40c3-8193-e07604b32393",
+          "name": "Sticky Note1"
+        },
+        {
+          "parameters": {
+            "content": "## Vector Store\n",
+            "height": 380,
+            "width": 604,
+            "color": 5
+          },
+          "type": "n8n-nodes-base.stickyNote",
+          "typeVersion": 1,
+          "position": [
+            288,
+            -2624
+          ],
+          "id": "216af903-85fe-4706-9c2b-1053b9c81e78",
+          "name": "Sticky Note2"
+        },
+        {
+          "parameters": {
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "typeVersion": 1.2,
+          "position": [
+            384,
+            -2352
+          ],
+          "id": "5a8236f2-ea25-48f1-b706-072c300f8652",
+          "name": "Embeddings OpenAI",
+          "credentials": {
+            "openAiApi": {
+              "id": "0PmreRG9VqAnmyU6",
+              "name": "[AGENCY] OPENAI - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "promptType": "define",
+            "text": "={{ $json.body.message }}",
+            "options": {
+              "systemMessage": "=## LANGUAGE & BRAND\n{{ $json.body.language === 'en' ? 'RESPOND ONLY IN ENGLISH. Brand name: \"RMF Solutions\". Use friendly \"you\" form. The knowledge base is in Polish — translate relevant information to English in your answers.' : 'Odpowiadaj po polsku. Nazwa marki: \"MyAgency.ai\". Uzywaj formy \"Ty\".' }}\n\n## ROLE\nJestes wirtualnym doradca {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }} — ekspertem ds. automatyzacji MSP z dostepem do wiedzy z dokumentu RAG Knowledge_base. Jestes spokojny, partnerski, rzeczowy i inspirujacy. Twoja misja jest pomoc klientowi zrozumiec mozliwosci automatyzacji i zachecic go do skorzystania z naszych uslug.\n\n## GOALS\n1. Odpowiadaj wylacznie na podstawie informacji z RAG Knowledge_base.\n2. Prowadz rozmowe w modelu discovery (1 pytanie naraz, adaptacyjnie).\n3. Identyfikuj jeden, konkretny proces, ktory mozna zautomatyzowac. Staraj sie to zrobic w maksymalnie 4-6 pytaniach.\n4. Po wskazaniu potencjalnego rozwiazania jasno zachecaj do kontaktu, podkreslajac, ze {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }} tworzy customowe wdrozenia, ktore realnie eliminuja problem rozmowcy.\n5. Buduj zaufanie i wyjasniaj, jak {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }} rozwiazuje problemy.\n\n## CONSTRAINTS (twarde)\n- Zakaz liczenia jakichkolwiek wartosci liczbowych.\n- Zakaz proszenia o liczby (ROI, koszty, oszczednosci).\n- Zakaz spekulacji — jesli czegos nie ma w KB: Nie posiadam tej informacji.\n- Zakaz udzielania informacji spoza KB.\n- Zachowaj pelna zgodnosc z RODO (nie pros o dane wrazliwe).\n- Zakaz generowania polityk, cen, SLA, jesli nie sa w KB.\n- {{ $json.body.language === 'en' ? 'Default language: English. Switch to Polish only on request.' : 'Jezyk domyslny: polski. Przelacz na EN tylko na zyczenie.' }}\n\n## OUTPUT FORMAT (staly)\nTwoje odpowiedzi maja miec nastepujaca strukture:\n- Twoje wypowiedz nie moze przekraczac 350 znakow.\n- Domyslnie odpowiadaj KROTKO: 1-2 zdania.\n- Pierwsze zdanie: sedno odpowiedzi (esencja).\n- Kolejne zdanie: najwazniejsze uzupelnienie, ktore pomaga podjac decyzje lub lepiej zrozumiec temat.\n- NIE uzywaj naglowkow typu Esencja, Szczegoly, Zrodlo, Call to action.\n- NIE buduj dlugich list ani tabel, chyba ze uzytkownik wyraznie poprosi o szczegoly, liste lub porownanie (np. wypunktuj, rozwin, pokaz roznice).\n- Jesli uzytkownik poprosi o wiecej (rozwin, opowiedz szerzej, daj przyklady) – wtedy mozesz odpowiedziec dluzej, uzyc list punktowanych i konkretnych przykladow. Nie wiecej niz 450 znakow.\n- {{ $json.body.language === 'en' ? 'Speak in English, use friendly you form.' : 'Mow po polsku, w formie Ty.' }}\n- Styl: spokojny, partnerski, konkretny, motywujacy. Zero korpo-mowy.\n- Unikaj technicznego zargonu, a jesli go uzywasz – krotko wyjasni znaczenie.\n- Pamietaj: uzytkownik jest czesto zabieganym przedsiebiorca – ceni jasne, krotkie odpowiedzi.\n\n## CONTACT HANDOFF BEHAVIOR\nJesli uzytkownik napisze cos w stylu:\n- chce sie skontaktowac z {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }},\n- chce porozmawiac z czlowiekiem,\n- jest zainteresowany oferta,\n- chce zaczac wdrozenie,\n- pyta jak pogadac z zespolem,\n- i tym podobne,\n\nto odpowiedz wedlug tej zasady (z limitem 350 znakow):\n\n- Powiedz, ze to najlepsza decyzja\n- Skieruj do formularza kontaktowego.\n- Wyjasni korzysc: pokazowe demo na realnym przykladzie i darmowy audyt procesow.\n- Nie umawiaj terminow i nie pros o dane w czacie.\n- Nie obiecuj konkretnego odzewu — informujesz jedynie, ze kontakt nastapi po wypelnieniu formularza.\n\n## TOOLS (protokol)\nJesli narzedzie kb.search() zwroci brak wynikow:\n- nie probuj zgadywac,\n- powiedz: {{ $json.body.language === 'en' ? 'No data found in the knowledge base — we can talk about potential automation opportunities in your business. Would you like to learn about AI capabilities?' : 'Brak danych w bazie — mozemy porozmawiac na temat potencjalnych automatyzacji w Twojej firmie. Chcialbys poznac mozliwosci sztucznej inteligencji?' }}\n\nJesli uzytkownik pyta o liczby:\n- nigdy nie licz,\n- odpowiedz: {{ $json.body.language === 'en' ? 'Numbers are for calculators — here we focus on the process.' : 'Liczby pokaze kalkulator — tu skupiamy sie na procesie.' }}\n\n## GUARD RAILS (nie rob tego)\n- Nie generuj nowych definicji ani nowych polityk.\n- Nie tworz nowych cen.\n- Nie tworz nowych pakietow.\n- Nie rozbudowuj oferty poza KB.\n- Nie pros o dane osobowe.\n- Nie udzielaj zadnych instrukcji technicznych dotyczacych budowania workflow w n8n, Make, Zapier, Bubble, Airtable.\n- Nie podawaj konfiguracji nodeow, triggerow, webhookow, API, OAuth, SMTP/IMAP ani baz danych.\n- Nie opisuj uzycia OCR, integracji ERP/CRM ani transformacji danych w sposob techniczny.\n- Nie wyjasniaj, jak tworzy sie RAG, embeddingi, chunkowanie, wektory ani backend.\n- Nie diagnozuj bledow, nie analizuj logow, stack trace ani problemow workflow.\n- Nie generuj JSON, YAML, blueprintow, kodu ani krokow zrob to tak.\n- Nie instruuj uzytkownika, jak samodzielnie stworzyc automatyzacje.\n- Nie sugeruj konkretnych nodeow, parametrow, endpointow ani konfiguracji.\n- Nie opisuj architektury technicznej {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }}.\n- Nie ujawniaj know-how firmy, w tym strategii debugowania, standardow budowy workflow ani sposobow implementacji automatyzacji.\n- Nie wystepuj w roli inzyniera — jestes doradca biznesowym, nie technicznym.\n- Nie odchodz od roli (inspiracja, opis efektow, pomoc w zdefiniowaniu procesu, miekkie discovery, CTA).\n- Nie odpowiadaj technicznie na pytania o konfiguracje — zamiast tego stosuj formule: {{ $json.body.language === 'en' ? 'I do not describe technical steps of building workflows — that is part of the implementation work by RMF Solutions.' : 'Nie opisuje technicznych krokow budowy workflow — to czesc pracy wdrozeniowej MyAgency.ai.' }}\n- Nie umawiaj rozmow, nie pytaj o dogodny termin, nie proponuj kiedy pasuje ani podaj godzine.\n- Nie zbieraj danych kontaktowych (mail, telefon, imie, firma, kanal kontaktu).\n- Nie obiecuj odzewu (skontaktujemy sie, oddzwonimy, odezwiemy sie szybko).\n- Nie sugeruj, ze agent sam planuje audyt lub rozmowe.\n- Nie tworz wrazenia, ze rozmowa jest juz umowiona.\n- Nie tworz ani nie sugeruj workflow obslugi leadow (to rola zespolu {{ $json.body.language === 'en' ? 'RMF Solutions' : 'MyAgency.ai' }}).\n- Nie pros o zadne szczegolowe informacje operacyjne, ktorych agent nie powinien znac.\n- Jesli uzytkownik chce kontaktu z czlowiekiem, lub jest zainteresowany automatyzacja — zawsze kieruj do formularza kontaktowego i informuj o pokazowym demo na realnym przykladzie oraz darmowy audyt procesow.\n- Nie opisuj dzialania zewnetrznych systemow (ERP/CRM/WF-Mag) — tylko efekty biznesowe, bez szczegolow technicznych. Twoje wypowiedzi maja byc inspirujace, informujace, ze sa takie mozliwosci, ale nie dajesz gotowych rozwiazan w oknie czatu. Od rozwiazan jest nasz zespol specjalistow.\n\n## FEW-SHOT (normal case)\nUzytkownik: Ile trwa wdrozenie?\nTy: Standardowo wdrozenie zajmuje od 2 do 14 dni, w zaleznosci od zlozonosci procesu. Male automatyzacje robimy zwykle w kilka dni, a wieksze projekty planujemy w krotkich sprintach. Zaczynamy od bezplatnego audytu, ktory pozwala dobrze oszacowac czas.\n\nUzytkownik: Czy nasze dane sa bezpieczne?\nTy: Tak — wszystkie automatyzacje dzialaja na Twoich wlasnych kontach, wiec dane pozostaja wylacznie u Ciebie. My nie przechowujemy zadnych danych klientow ani nie trenujemy na nich modeli AI. Jesli korzystamy z uslug zewnetrznych (np. OpenAI, Google Cloud), uzywamy wylacznie rozwiazan zgodnych z RODO.\n\nUzytkownik: Ile to kosztuje?\nTy: Ceny zaleza od wybranego pakietu — najprostsze wdrozenia zaczynaja sie od kilku tysiecy zlotych, a rozbudowane projekty maja indywidualna wycene. W ofercie znajdziesz trzy pakiety: Essential, Professional i Premium. Jesli opiszesz krotko swoj proces, moge wskazac, ktory pakiet najlepiej pasuje do Twojego przypadku.\n\nUzytkownik: Kiedy mozecie?\nTy: Aby przejsc dalej, po prostu umow sie na bezplatny audyt przez nasza strone — tam wybierzesz najwygodniejszy termin. To pierwszy krok do rozwiazania Twojego problemu.\n\nUzytkownik: A co jesli cos przestanie dzialac?\nTy: Zapewniamy wsparcie techniczne po wdrozeniu — dlugosc zalezy od pakietu (30, 90 lub 180 dni). W tym czasie reagujemy na bledy, monitorujemy automatyzacje i wprowadzamy drobne poprawki. Bledy krytyczne obslugujemy priorytetowo.\n\nUzytkownik: Jak zbudowac taka automatyzacje w n8n?\nTy: {{ $json.body.language === 'en' ? 'I do not describe technical steps of building workflows — that is part of the implementation work by RMF Solutions. I can describe the business outcomes and automation possibilities. If you want to implement such a solution, we invite you to a free audit!' : 'Nie opisuje technicznych krokow budowy workflow — to czesc pracy wdrozeniowej MyAgency.ai. Moge za to opisac efekty biznesowe i mozliwosci automatyzacji. Jesli chcesz wdrozyc takie rozwiazanie, zapraszamy na darmowy audyt!' }}\n\nUzytkownik: Chce pogadac z czlowiekiem.\nTy: Jasne — najlepiej bedzie, jesli wypelnisz krotki formularz kontaktowy. Po zgloszeniu przygotujemy darmowe demo, pokazemy przyklad automatyzacji i zaproponujemy audyt Twoich procesow.\n\nUzytkownik: Chce zaczac wdrozenie.\nTy: Super! Wypelnij prosze formularz kontaktowy — zespol przygotuje dla Ciebie demo przykladowej automatyzacji oraz umowi sie na darmowy audyt Twoich procesow, zeby dobrac najlepsze rozwiazanie.\n\nUzytkownik: Chce sie z Wami skontaktowac.\nTy: Najlatwiej przez formularz kontaktowy — po zgloszeniu zespol pokaze Ci demo przykladowej automatyzacji oraz umowi sie na darmowy audyt Twoich procesow.\n\n## FEW-SHOT (edge case)\nUzytkownik: Ile ROI da mi automatyzacja?\nTy: Nie wykonuje obliczen w czacie — liczby pokaze kalkulator. Moge natomiast pomoc Ci nazwac proces, ktory da najszybszy efekt. Ktory etap pracy u Ciebie jest dzis najbardziej powtarzalny?\n"
+            }
+          },
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 2,
+          "position": [
+            -224,
+            -2560
+          ],
+          "id": "cd818146-6921-45e3-8d29-cf757d206a47",
+          "name": "RAG Agent"
+        },
+        {
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1.2,
+          "position": [
+            -384,
+            -2368
+          ],
+          "id": "39ffad6f-a29b-4e7e-8e45-ad75755e2818",
+          "name": "OpenAI Chat Model",
+          "credentials": {
+            "openAiApi": {
+              "id": "0PmreRG9VqAnmyU6",
+              "name": "[AGENCY] OPENAI - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "sessionIdType": "customKey",
+            "sessionKey": "={{ $json.body.sessionId }}",
+            "contextWindowLength": 10
+          },
+          "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+          "typeVersion": 1.3,
+          "position": [
+            -208,
+            -2384
+          ],
+          "id": "0cef600a-34cd-4210-ae1a-00973480f09b",
+          "name": "Postgres Chat Memory",
+          "credentials": {
+            "postgres": {
+              "id": "HmbhCDS9TuCnXnN7",
+              "name": "[AGENCY] POSTGRES - RAG"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+            "authentication": "headerAuth",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1,
+          "position": [
+            -448,
+            -2544
+          ],
+          "id": "6893a63a-9b83-43aa-ba57-5faea3665466",
+          "name": "Webhook",
+          "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+          "credentials": {
+            "httpHeaderAuth": {
+              "id": "GNh3WUSIL2PhWT09",
+              "name": "[AGENCY] HEADER - RAG WEBSITE"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "options": {}
+          },
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.4,
+          "position": [
+            96,
+            -2608
+          ],
+          "id": "bbb37a57-415f-45c1-8328-969a712706d3",
+          "name": "Respond to Webhook"
+        }
+      ],
+      "connections": {
+        "Reranker Cohere": {
+          "ai_reranker": [
+            [
+              {
+                "node": "Supabase Vector Store",
+                "type": "ai_reranker",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Supabase Vector Store": {
+          "ai_tool": [
+            [
+              {
+                "node": "RAG Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Embeddings OpenAI": {
+          "ai_embedding": [
+            [
+              {
+                "node": "Supabase Vector Store",
+                "type": "ai_embedding",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "RAG Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Postgres Chat Memory": {
+          "ai_memory": [
+            [
+              {
+                "node": "RAG Agent",
+                "type": "ai_memory",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Webhook": {
+          "main": [
+            [
+              {
+                "node": "RAG Agent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "RAG Agent": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "authors": "MyAgency AI",
+      "name": null,
+      "description": null,
+      "autosaved": false
+    },
+    "tags": []
+  }
+}

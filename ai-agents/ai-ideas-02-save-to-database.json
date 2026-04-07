@@ -1,0 +1,829 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-03T02:00:01.992Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "6Tw7RUD5WNcHOPr9",
+    "workflow_name": "[TechCorp AI Ideas] 1.1 Add Idea row to AI IDEAS database",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-01-16T07:53:47.000Z",
+    "createdAt": "2026-01-16T07:53:47.684Z",
+    "id": "6Tw7RUD5WNcHOPr9",
+    "name": "[TechCorp AI Ideas] 1.1 Add Idea row to AI IDEAS database",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "b918a012-2586-49eb-aef7-dc03360b9370",
+                "name": "status",
+                "value": "success",
+                "type": "string"
+              },
+              {
+                "id": "dcf681be-5e64-47b5-b12d-843f082d1e18",
+                "name": "message",
+                "value": "Data saved successfully",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          0,
+          192
+        ],
+        "id": "6a0cae50-3161-4400-b568-11c43c806cbf",
+        "name": "Success Response"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "b918a012-2586-49eb-aef7-dc03360b9370",
+                "name": "status",
+                "value": "error",
+                "type": "string"
+              },
+              {
+                "id": "d19bfdf1-03ff-4e95-9f61-8cab5beddff6",
+                "name": "message",
+                "value": "={{ $json.error }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          0
+        ],
+        "id": "f5c15ec0-5a10-49f8-9ec8-1f94d10d8674",
+        "name": "Error Response"
+      },
+      {
+        "parameters": {
+          "fromEmail": "n8n-bot@example-corp.com",
+          "toEmail": "={{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Email Address\"] }}",
+          "subject": "=🚨 AI Agent error: {{ $workflow.name }} (Exec ID: {{ $executionId }})",
+          "html": "=<div style=\"font-family: Arial, sans-serif; color: #333; line-height: 1.5;\">\n  <h2 style=\"color: #d9534f; margin-bottom: 10px;\">🚨 Failed to save idea</h2>\n  \n  <p>Hi,</p>\n  <p>The system encountered a technical issue in the workflow <b>{{ $workflow.name }}</b>. Below is the data we managed to collect.</p>\n  <p><b>You can copy the list below and paste it directly into the chat or forward it to an admin.</b></p>\n  \n  <hr style=\"border: 0; border-top: 1px solid #ccc; margin: 20px 0;\">\n\n  <p><strong>Idea Name:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Idea name\"] }}</p>\n\n  <p><strong>Description:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Idea Description\"] }}</p>\n\n  <p><strong>Problem Solved:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Problem Solved\"] }}</p>\n\n  <p><strong>Target User (Persona):</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Target Persona / User\"] }}</p>\n\n  <p><strong>Source:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Idea Source\"] }}</p>\n\n  <p><strong>Scope:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Scope of impact\"] }}</p>\n\n  <p><strong>Status:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Status\"] }}</p>\n  \n  <br>\n  <strong>--- BUSINESS VALUE ---</strong>\n  \n  <p><strong>Revenue increase:</strong> {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Expected Business Value [Revenue increase]\"] }}</p>\n  <p><strong>Cost reduction:</strong> {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Expected Business Value [Cost reduction]\"] }}</p>\n  <p><strong>UX Improvement:</strong> {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Expected Business Value [User experience improvement]\"] }}</p>\n  <p><strong>Efficiency gain:</strong> {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Expected Business Value [Efficiency gain]\"] }}</p>\n  \n  <p><strong>Value Explanation:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Value Explanation\"] }}</p>\n\n  <br>\n  <strong>--- TECHNICAL & RISKS ---</strong>\n\n  <p><strong>Effort:</strong> {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Effort/time to deliver\"] }}</p>\n  \n  <p><strong>High-Level Design:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"High-Level Design\"] }}</p>\n  \n  <p><strong>Risks / Dependencies:</strong><br>\n  {{ $('When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow').first().json[\"Dependencies / Risks / Notes\"] }}</p>\n\n  <hr style=\"border: 0; border-top: 1px solid #ccc; margin: 20px 0;\">\n\n  <p style=\"font-size: 12px; color: #666;\">\n    <b>Execution ID:</b> {{ $executionId }}<br>\n    <b>Time:</b> {{ $now }}<br>\n    <b>Error Message:</b> <span style=\"background-color: #f8d7da; padding: 2px 5px;\">{{ $json.error?.message }}</span>\n  </p>\n\n  <details>\n    <summary style=\"cursor: pointer; color: #007bff; font-size: 12px;\">Full Error JSON</summary>\n    <pre style=\"background: #f4f4f4; padding: 10px; font-size: 11px; overflow-x: auto;\">{{ JSON.stringify($json.error || {}, null, 2) }}</pre>\n  </details>\n</div>",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "id": "4c51c8bc-ed3d-4549-aa8d-4656b9d54c6d",
+        "name": "Send failure email",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "94434636-333f-47c5-b5f3-f2b3af45e15a",
+                "leftValue": "={{ $json.error }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -224,
+          96
+        ],
+        "id": "7fee2031-d54a-44a6-9014-99203b72ccd0",
+        "name": "Error?"
+      },
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "Timestamp"
+              },
+              {
+                "name": "Email Address"
+              },
+              {
+                "name": "Idea name"
+              },
+              {
+                "name": "Idea Description"
+              },
+              {
+                "name": "Target Persona / User"
+              },
+              {
+                "name": "Problem Solved"
+              },
+              {
+                "name": "Expected Business Value [Revenue increase]"
+              },
+              {
+                "name": "Expected Business Value [Cost reduction]"
+              },
+              {
+                "name": "Expected Business Value [User experience improvement]"
+              },
+              {
+                "name": "Expected Business Value [Efficiency gain]"
+              },
+              {
+                "name": "Value Explanation"
+              },
+              {
+                "name": "Effort/time to deliver"
+              },
+              {
+                "name": "High-Level Design"
+              },
+              {
+                "name": "Dependencies / Risks / Notes"
+              },
+              {
+                "name": "Scope of impact"
+              },
+              {
+                "name": "Idea Source"
+              },
+              {
+                "name": "Status"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -672,
+          96
+        ],
+        "id": "2b12f365-61bc-49ca-aba5-2eadeaa68ba9",
+        "name": "When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow"
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "TechCorp AI Ideas repository",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 1026735829,
+            "mode": "list",
+            "cachedResultName": "TECHCORP AI IDEAS - responses",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=1026735829"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Timestamp": "={{ $json.Timestamp }}",
+              "Email Address": "={{ $json[\"Email Address\"] }}",
+              "Idea name": "={{ $json[\"Idea name\"] }}",
+              "Idea Description ": "={{ $json[\"Idea Description\"] }}",
+              "Target Persona / User  ": "={{ $json[\"Target Persona / User\"] }}",
+              "Problem Solved ": "={{ $json[\"Problem Solved\"] }}",
+              "Expected Business Value [Revenue increase]": "={{ $json[\"Expected Business Value [Revenue increase]\"] }}",
+              "Expected Business Value [Cost reduction]": "={{ $json[\"Expected Business Value [Cost reduction]\"] }}",
+              "Expected Business Value [User experience improvement]": "={{ $json[\"Expected Business Value [User experience improvement]\"] }}",
+              "Expected Business Value [Efficiency gain]": "={{ $json[\"Expected Business Value [Efficiency gain]\"] }}",
+              "Value Explanation ": "={{ $json[\"Value Explanation\"] }}",
+              "Effort/time to deliver": "={{ $json[\"Effort/time to deliver\"] }}",
+              "High-Level Design ": "={{ $json[\"High-Level Design\"] }}",
+              "Dependencies / Risks / Notes ": "={{ $json[\"Dependencies / Risks / Notes\"] }}",
+              "Scope of impact": "={{ $json[\"Scope of impact\"] }}",
+              "Idea Source": "={{ $json[\"Idea Source\"] }}",
+              "Status": "={{ $json.Status }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "ID",
+                "displayName": "ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Timestamp",
+                "displayName": "Timestamp",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Email Address",
+                "displayName": "Email Address",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Idea name",
+                "displayName": "Idea name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Idea Description ",
+                "displayName": "Idea Description ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Target Persona / User  ",
+                "displayName": "Target Persona / User  ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Problem Solved ",
+                "displayName": "Problem Solved ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Expected Business Value [Revenue increase]",
+                "displayName": "Expected Business Value [Revenue increase]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Expected Business Value [Cost reduction]",
+                "displayName": "Expected Business Value [Cost reduction]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Expected Business Value [User experience improvement]",
+                "displayName": "Expected Business Value [User experience improvement]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Expected Business Value [Efficiency gain]",
+                "displayName": "Expected Business Value [Efficiency gain]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Value Explanation ",
+                "displayName": "Value Explanation ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Effort/time to deliver",
+                "displayName": "Effort/time to deliver",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "High-Level Design ",
+                "displayName": "High-Level Design ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Dependencies / Risks / Notes ",
+                "displayName": "Dependencies / Risks / Notes ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Scope of impact",
+                "displayName": "Scope of impact",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Idea Source",
+                "displayName": "Idea Source",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "displayName": "Status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Relevance (1–5)",
+                "displayName": "Relevance (1–5)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Relevance – comment",
+                "displayName": "Relevance – comment",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Customer Benefit (1–5)",
+                "displayName": "Customer Benefit (1–5)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Customer Benefit – comment",
+                "displayName": "Customer Benefit – comment",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Disruptive Potential (1–5)",
+                "displayName": "Disruptive Potential (1–5)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Disruptive Potential – comment",
+                "displayName": "Disruptive Potential – comment",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Complexity (1–5)",
+                "displayName": "Complexity (1–5)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Complexity – comment",
+                "displayName": "Complexity – comment",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Know-how (1–5)",
+                "displayName": "Know-how (1–5)",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Know-how – comment",
+                "displayName": "Know-how – comment",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Awareness Check – existing solutions",
+                "displayName": "Awareness Check – existing solutions",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Awareness Check – comment",
+                "displayName": "Awareness Check – comment",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "AI advisor summary",
+                "displayName": "AI advisor summary",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Score Avg",
+                "displayName": "Score Avg",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Score Recommendation",
+                "displayName": "Score Recommendation",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Hypothesis statement",
+                "displayName": "Hypothesis statement",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Success metric 1",
+                "displayName": "Success metric 1",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Success threshold 1",
+                "displayName": "Success threshold 1",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Success metric 2",
+                "displayName": "Success metric 2",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Success threshold 2",
+                "displayName": "Success threshold 2",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "MVP plan description",
+                "displayName": "MVP plan description",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "MVP test variable",
+                "displayName": "MVP test variable",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "AI analyst summary",
+                "displayName": "AI analyst summary",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Research summary",
+                "displayName": "Research summary",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Salesforce OOTB check",
+                "displayName": "Salesforce OOTB check",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Market competitors",
+                "displayName": "Market competitors",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Differentation factor",
+                "displayName": "Differentation factor",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Risk technological",
+                "displayName": "Risk technological",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Risk regulatory",
+                "displayName": "Risk regulatory",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Research justification",
+                "displayName": "Research justification",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "Final research recommendation",
+                "displayName": "Final research recommendation",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          -448,
+          96
+        ],
+        "id": "41ea864a-5814-43e4-b715-4f4b9447fbf6",
+        "name": "Append row to TECHCORP AI IDEAS - responses",
+        "retryOnFail": false,
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput"
+      }
+    ],
+    "connections": {
+      "Send failure email": {
+        "main": [
+          [
+            {
+              "node": "Error Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Error?": {
+        "main": [
+          [
+            {
+              "node": "Send failure email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Success Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow": {
+        "main": [
+          [
+            {
+              "node": "Append row to TECHCORP AI IDEAS - responses",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append row to TECHCORP AI IDEAS - responses": {
+        "main": [
+          [
+            {
+              "node": "Error?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {
+      "When Executed by [TechCorp AI Ideas] 1. AI ideas form assistant copy 1 workflow": [
+        {
+          "json": {
+            "Timestamp": "2026-01-08T09:29:28.414+01:00",
+            "Email Address": "contact@example-corp.com",
+            "Idea name": "Example AI Idea",
+            "Idea Description": "Rozwiązanie AI wykorzystujące integrację n8n i TimeTracker do automatycznego wypełniania raportów czasu pracy dla naszych pracowników.",
+            "Target Persona / User": "Nasi pracownicy",
+            "Problem Solved": "Zmniejszenie czasu potrzebnego pracownikom na wypełnianie raportów czasu pracy, co pozwala im skupić się na kluczowych zadaniach.",
+            "Expected Business Value [Revenue increase]": "Low",
+            "Expected Business Value [Cost reduction]": "Low",
+            "Expected Business Value [User experience improvement]": "High",
+            "Expected Business Value [Efficiency gain]": "High",
+            "Value Explanation": "Pomysł generuje wartość, ponieważ pozwala pracownikom skupić się na ich głównych zadaniach, zamiast poświęcać czas na wypełnianie raportów czasu pracy.",
+            "Effort/time to deliver": "Medium (2-6 weeks)",
+            "High-Level Design": "Wykorzystuje n8n do automatyzacji i integracji ze TimeTracker.",
+            "Dependencies / Risks / Notes": "Głównym ryzykiem jest niechęć ludzi do korzystania z rozwiązania.",
+            "Scope of impact": "Company-wide Improvement (Internal innovation)",
+            "Idea Source": "Internal brainstorming",
+            "Status": "New"
+          }
+        }
+      ]
+    },
+    "versionId": "4d8d3ebf-781f-4e32-995f-d89b5cbc7dab",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-01-16T07:53:47.688Z",
+        "createdAt": "2026-01-16T07:53:47.688Z",
+        "role": "workflow:owner",
+        "workflowId": "6Tw7RUD5WNcHOPr9",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

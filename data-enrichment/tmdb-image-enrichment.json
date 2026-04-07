@@ -1,0 +1,1200 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-04T02:00:02.004Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "vKQHvPhQwx1O2FUTyLd1W",
+    "workflow_name": "[DEV] Media Corp - TMDB Multi-Image Enrichment",
+    "active": true,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-09T14:08:06.247Z",
+    "createdAt": "2026-02-04T16:23:15.972Z",
+    "id": "vKQHvPhQwx1O2FUTyLd1W",
+    "name": "[DEV] Media Corp - TMDB Multi-Image Enrichment",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "MEDIA CORP - HIGHLIGHT DEMO",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Sheet1",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheetsTrigger",
+        "typeVersion": 1,
+        "position": [
+          32,
+          0
+        ],
+        "id": "05176cd5-4ef4-4747-aef4-4fd61d2dc792",
+        "name": "On added or updated row",
+        "credentials": {
+          "googleSheetsTriggerOAuth2Api": {
+            "id": "3tccG5qFg7tyloKx",
+            "name": "Google Sheets Trigger account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "url1-empty",
+                "leftValue": "={{ $json[\"URL 1\"] }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "empty"
+                }
+              }
+            ],
+            "combinator": "or"
+          },
+          "options": {}
+        },
+        "id": "filter-empty-url",
+        "name": "Filter Empty URL 1",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.2,
+        "position": [
+          256,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          480,
+          0
+        ],
+        "id": "4998745a-9c6a-405e-ba0d-7dc49e19c566",
+        "name": "Loop Over Items"
+      },
+      {
+        "parameters": {
+          "url": "https://api.themoviedb.org/3/search/movie",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "api_key",
+                "value": "92362566bdaf5c0210d0e4c5fcab8657"
+              },
+              {
+                "name": "query",
+                "value": "={{ $json[\"Tytuły filmów\"] }}"
+              },
+              {
+                "name": "year",
+                "value": "={{ $json[\"Rok\"] }}"
+              },
+              {
+                "name": "language",
+                "value": "pl-PL"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "tmdb-search",
+        "name": "TMDB Search Movie",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          704,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const searchResults = $input.first().json;\nconst originalData = $('Loop Over Items').first().json;\n\nconst queryTitle = (originalData[\"Tytuły filmów\"] || '').trim().toLowerCase();\nconst inputYear = parseInt(originalData[\"Rok\"]);\n\nif (!searchResults.results || searchResults.results.length === 0) {\n  return {\n    json: {\n      movieId: null,\n      movieTitle: null,\n      originalData: originalData,\n      movieFound: false\n    }\n  };\n}\n\nconst results = searchResults.results;\n\nfunction getYear(movie) {\n  if (!movie.release_date) return null;\n  return parseInt(movie.release_date.substring(0, 4));\n}\n\n// Priority 1: Exact title + exact year\nlet match = results.find(m =>\n  m.title.trim().toLowerCase() === queryTitle && getYear(m) === inputYear\n);\n\n// Priority 2: Exact title + year +/-1\nif (!match) {\n  match = results.find(m =>\n    m.title.trim().toLowerCase() === queryTitle &&\n    getYear(m) !== null && Math.abs(getYear(m) - inputYear) <= 1\n  );\n}\n\n// Priority 3: Title starts with query + exact year\nif (!match) {\n  match = results.find(m =>\n    m.title.trim().toLowerCase().startsWith(queryTitle) && getYear(m) === inputYear\n  );\n}\n\n// Priority 4: Any result with exact year match\nif (!match) {\n  match = results.find(m => getYear(m) === inputYear);\n}\n\n// No suitable match\nif (!match) {\n  return {\n    json: {\n      movieId: null,\n      movieTitle: null,\n      originalData: originalData,\n      movieFound: false\n    }\n  };\n}\n\nreturn {\n  json: {\n    movieId: match.id,\n    movieTitle: match.title,\n    originalData: originalData,\n    movieFound: true\n  }\n};"
+        },
+        "id": "extract-movie-id",
+        "name": "Extract Movie ID",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          928,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "url": "=https://api.themoviedb.org/3/movie/{{ $json.movieId }}/images",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "api_key",
+                "value": "92362566bdaf5c0210d0e4c5fcab8657"
+              },
+              {
+                "name": "include_image_language",
+                "value": "pl,null"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "id": "tmdb-get-images",
+        "name": "TMDB Get Images",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1152,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const imagesResponse = $input.first().json;\nconst extractData = $('Extract Movie ID').first().json;\nconst originalData = extractData.originalData;\n\nconst BASE_URL = 'https://image.tmdb.org/t/p/';\nconst BACKDROP_SIZE = 'w1280';\nconst POSTER_SIZE = 'w500';\n\n// If movie was not found or images API failed, return NOT FOUND\nif (!extractData.movieFound || !imagesResponse.backdrops) {\n  return {\n    json: {\n      ...originalData,\n      'URL_1': 'NOT FOUND',\n      'URL_2': '', 'URL_3': '', 'URL_4': '', 'URL_5': '',\n      'URL_6': '', 'URL_7': '', 'URL_8': '', 'URL_9': '', 'URL_10': ''\n    }\n  };\n}\n\nconst backdrops = imagesResponse.backdrops || [];\nconst posters = imagesResponse.posters || [];\n\n// HARD FILTER: Only Polish or text-free images (no English for Polish TV)\nconst cleanBackdrops = backdrops.filter(img =>\n  img.iso_639_1 === null || img.iso_639_1 === 'pl'\n);\nconst cleanPosters = posters.filter(img =>\n  img.iso_639_1 === 'pl' || img.iso_639_1 === null\n);\n\n// Poster scoring - prioritize Polish\nfunction scorePoster(img) {\n  let score = 0;\n  if (img.iso_639_1 === 'pl') score += 1000;\n  if (img.iso_639_1 === null) score += 500;\n  score += (img.vote_average || 0) * 10;\n  score += Math.min(img.vote_count || 0, 100);\n  return score;\n}\n\n// Backdrop scoring - prioritize no text\nfunction scoreBackdrop(img) {\n  let score = 0;\n  if (img.iso_639_1 === null) score += 1000;\n  if (img.iso_639_1 === 'pl') score += 500;\n  score += (img.vote_average || 0) * 10;\n  score += Math.min(img.vote_count || 0, 100);\n  return score;\n}\n\n// URL_1: Best Polish poster\nconst scoredPosters = cleanPosters\n  .map(img => ({ ...img, score: scorePoster(img), fullUrl: `${BASE_URL}${POSTER_SIZE}${img.file_path}` }))\n  .sort((a, b) => b.score - a.score);\nconst firstPoster = scoredPosters[0]?.fullUrl || 'NOT FOUND';\n\n// URL_2 to URL_10: Diverse backdrops using stride selection (9 picks)\nconst scoredBackdrops = cleanBackdrops\n  .map(img => ({ ...img, score: scoreBackdrop(img), fullUrl: `${BASE_URL}${BACKDROP_SIZE}${img.file_path}` }))\n  .sort((a, b) => b.score - a.score);\n\nconst total = scoredBackdrops.length;\nconst stride = Math.max(1, Math.floor(total / 9));\nconst selectedBackdrops = [];\nfor (let i = 0; i < 9 && i * stride < total; i++) {\n  selectedBackdrops.push(scoredBackdrops[i * stride]);\n}\n\nreturn {\n  json: {\n    ...originalData,\n    'URL_1': firstPoster,\n    'URL_2': selectedBackdrops[0]?.fullUrl || '',\n    'URL_3': selectedBackdrops[1]?.fullUrl || '',\n    'URL_4': selectedBackdrops[2]?.fullUrl || '',\n    'URL_5': selectedBackdrops[3]?.fullUrl || '',\n    'URL_6': selectedBackdrops[4]?.fullUrl || '',\n    'URL_7': selectedBackdrops[5]?.fullUrl || '',\n    'URL_8': selectedBackdrops[6]?.fullUrl || '',\n    'URL_9': selectedBackdrops[7]?.fullUrl || '',\n    'URL_10': selectedBackdrops[8]?.fullUrl || ''\n  }\n};"
+        },
+        "id": "process-images",
+        "name": "Process Images",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1376,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "id"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Tytuły filmów": "={{ $json[\"Tytuły filmów\"] }}",
+              "Rok": "={{ $json[\"Rok\"] }}",
+              "URL 1": "={{ $json.URL_1 }}",
+              "URL 2": "={{ $json.URL_2 }}",
+              "URL 3": "={{ $json.URL_3 }}",
+              "URL 4": "={{ $json.URL_4 }}",
+              "URL 5": "={{ $json.URL_5 }}",
+              "URL 6": "={{ $json.URL_6 }}",
+              "URL 7": "={{ $json.URL_7 }}",
+              "URL 8": "={{ $json.URL_8 }}",
+              "URL 9": "={{ $json.URL_9 }}",
+              "URL 10": "={{ $json.URL_10 }}"
+            },
+            "matchingColumns": [
+              "Tytuły filmów"
+            ],
+            "schema": [
+              {
+                "id": "Tytuły filmów",
+                "displayName": "Tytuły filmów",
+                "required": false,
+                "defaultMatch": true,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Rok",
+                "displayName": "Rok",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "URL 1",
+                "displayName": "URL 1",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 2",
+                "displayName": "URL 2",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 3",
+                "displayName": "URL 3",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 4",
+                "displayName": "URL 4",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 5",
+                "displayName": "URL 5",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 6",
+                "displayName": "URL 6",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 7",
+                "displayName": "URL 7",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 8",
+                "displayName": "URL 8",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 9",
+                "displayName": "URL 9",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              },
+              {
+                "id": "URL 10",
+                "displayName": "URL 10",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "update-sheet",
+        "name": "Update Google Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          1600,
+          80
+        ],
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "cGJ5fju0HEKfZT5V",
+            "name": "[AGENCY] SHEETS - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "al-1",
+                "name": "project_name",
+                "value": "[DEV] Media Corp - TMDB Multi-Image Enrichment",
+                "type": "string"
+              },
+              {
+                "id": "al-2",
+                "name": "workflow_name",
+                "value": "={{ $workflow.name }}",
+                "type": "string"
+              },
+              {
+                "id": "al-3",
+                "name": "execution_id",
+                "value": "={{ $execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-4",
+                "name": "execution_url",
+                "value": "={{ 'https://your-instance.app.n8n.cloud/workflow/' + $workflow.id + '/executions/' + $execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-5",
+                "name": "status",
+                "value": "success",
+                "type": "string"
+              },
+              {
+                "id": "al-6",
+                "name": "error_message",
+                "value": "",
+                "type": "string"
+              },
+              {
+                "id": "al-7",
+                "name": "time_saved_minutes",
+                "value": "=5",
+                "type": "number"
+              },
+              {
+                "id": "al-8",
+                "name": "metadata",
+                "value": "={{ JSON.stringify({ items_processed: $itemIndex + 1, timestamp: $now.toISO() }) }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "c9b4aa4a-f86d-457d-87ec-50a92b4b0b33",
+        "name": "Prepare for automation_logs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          704,
+          -192
+        ]
+      },
+      {
+        "parameters": {
+          "tableId": "automation_logs",
+          "dataToSend": "autoMapInputData"
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          1152,
+          -192
+        ],
+        "id": "634736f8-3024-4d83-90f4-747ac3ad2789",
+        "name": "Log to automation_logs",
+        "credentials": {
+          "supabaseApi": {
+            "id": "pDckhjeF4Smhrova",
+            "name": "[AGENCY] SUPABASE - RAG"
+          }
+        }
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          928,
+          -192
+        ],
+        "id": "51f0a6d0-139c-4fa9-be91-8434594eef9c",
+        "name": "Limit1"
+      }
+    ],
+    "connections": {
+      "On added or updated row": {
+        "main": [
+          [
+            {
+              "node": "Filter Empty URL 1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Empty URL 1": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Prepare for automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "TMDB Search Movie",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "TMDB Search Movie": {
+        "main": [
+          [
+            {
+              "node": "Extract Movie ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Movie ID": {
+        "main": [
+          [
+            {
+              "node": "TMDB Get Images",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "TMDB Get Images": {
+        "main": [
+          [
+            {
+              "node": "Process Images",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Images": {
+        "main": [
+          [
+            {
+              "node": "Update Google Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Google Sheet": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare for automation_logs": {
+        "main": [
+          [
+            {
+              "node": "Limit1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit1": {
+        "main": [
+          [
+            {
+              "node": "Log to automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false,
+      "callerPolicy": "workflowsFromSameOwner",
+      "timeSavedMode": "fixed",
+      "errorWorkflow": "qbOSaENwdtXKQhbo",
+      "timeSavedPerExecution": 5
+    },
+    "staticData": {
+      "node:On added or updated row": {
+        "documentId": "EXAMPLE_SPREADSHEET_ID",
+        "sheetId": 0,
+        "lastRevision": 292,
+        "lastRevisionLink": "https://docs.google.com/spreadsheets/export?id=EXAMPLE_SPREADSHEET_ID&revision=292&exportFormat=xlsx"
+      }
+    },
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "2f64cef7-7ac0-4017-9e1f-7e0558c771f4",
+    "activeVersionId": "2f64cef7-7ac0-4017-9e1f-7e0558c771f4",
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2026-02-04T16:23:15.980Z",
+        "createdAt": "2026-02-04T16:23:15.980Z",
+        "role": "workflow:owner",
+        "workflowId": "vKQHvPhQwx1O2FUTyLd1W",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": {
+      "updatedAt": "2026-02-09T14:08:48.000Z",
+      "createdAt": "2026-02-09T14:08:06.248Z",
+      "versionId": "2f64cef7-7ac0-4017-9e1f-7e0558c771f4",
+      "workflowId": "vKQHvPhQwx1O2FUTyLd1W",
+      "nodes": [
+        {
+          "parameters": {
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            },
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "MEDIA CORP - HIGHLIGHT DEMO",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Sheet1",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleSheetsTrigger",
+          "typeVersion": 1,
+          "position": [
+            32,
+            0
+          ],
+          "id": "05176cd5-4ef4-4747-aef4-4fd61d2dc792",
+          "name": "On added or updated row",
+          "credentials": {
+            "googleSheetsTriggerOAuth2Api": {
+              "id": "3tccG5qFg7tyloKx",
+              "name": "Google Sheets Trigger account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict",
+                "version": 2
+              },
+              "conditions": [
+                {
+                  "id": "url1-empty",
+                  "leftValue": "={{ $json[\"URL 1\"] }}",
+                  "rightValue": "",
+                  "operator": {
+                    "type": "string",
+                    "operation": "empty"
+                  }
+                }
+              ],
+              "combinator": "or"
+            },
+            "options": {}
+          },
+          "id": "filter-empty-url",
+          "name": "Filter Empty URL 1",
+          "type": "n8n-nodes-base.filter",
+          "typeVersion": 2.2,
+          "position": [
+            256,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "options": {}
+          },
+          "type": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 3,
+          "position": [
+            480,
+            0
+          ],
+          "id": "4998745a-9c6a-405e-ba0d-7dc49e19c566",
+          "name": "Loop Over Items"
+        },
+        {
+          "parameters": {
+            "url": "https://api.themoviedb.org/3/search/movie",
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "api_key",
+                  "value": "92362566bdaf5c0210d0e4c5fcab8657"
+                },
+                {
+                  "name": "query",
+                  "value": "={{ $json[\"Tytuły filmów\"] }}"
+                },
+                {
+                  "name": "year",
+                  "value": "={{ $json[\"Rok\"] }}"
+                },
+                {
+                  "name": "language",
+                  "value": "pl-PL"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "tmdb-search",
+          "name": "TMDB Search Movie",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.3,
+          "position": [
+            704,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const searchResults = $input.first().json;\nconst originalData = $('Loop Over Items').first().json;\n\nconst queryTitle = (originalData[\"Tytuły filmów\"] || '').trim().toLowerCase();\nconst inputYear = parseInt(originalData[\"Rok\"]);\n\nif (!searchResults.results || searchResults.results.length === 0) {\n  return {\n    json: {\n      movieId: null,\n      movieTitle: null,\n      originalData: originalData,\n      movieFound: false\n    }\n  };\n}\n\nconst results = searchResults.results;\n\nfunction getYear(movie) {\n  if (!movie.release_date) return null;\n  return parseInt(movie.release_date.substring(0, 4));\n}\n\n// Priority 1: Exact title + exact year\nlet match = results.find(m =>\n  m.title.trim().toLowerCase() === queryTitle && getYear(m) === inputYear\n);\n\n// Priority 2: Exact title + year +/-1\nif (!match) {\n  match = results.find(m =>\n    m.title.trim().toLowerCase() === queryTitle &&\n    getYear(m) !== null && Math.abs(getYear(m) - inputYear) <= 1\n  );\n}\n\n// Priority 3: Title starts with query + exact year\nif (!match) {\n  match = results.find(m =>\n    m.title.trim().toLowerCase().startsWith(queryTitle) && getYear(m) === inputYear\n  );\n}\n\n// Priority 4: Any result with exact year match\nif (!match) {\n  match = results.find(m => getYear(m) === inputYear);\n}\n\n// No suitable match\nif (!match) {\n  return {\n    json: {\n      movieId: null,\n      movieTitle: null,\n      originalData: originalData,\n      movieFound: false\n    }\n  };\n}\n\nreturn {\n  json: {\n    movieId: match.id,\n    movieTitle: match.title,\n    originalData: originalData,\n    movieFound: true\n  }\n};"
+          },
+          "id": "extract-movie-id",
+          "name": "Extract Movie ID",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            928,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=https://api.themoviedb.org/3/movie/{{ $json.movieId }}/images",
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "api_key",
+                  "value": "92362566bdaf5c0210d0e4c5fcab8657"
+                },
+                {
+                  "name": "include_image_language",
+                  "value": "pl,null"
+                }
+              ]
+            },
+            "options": {
+              "response": {
+                "response": {
+                  "neverError": true
+                }
+              }
+            }
+          },
+          "id": "tmdb-get-images",
+          "name": "TMDB Get Images",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.3,
+          "position": [
+            1152,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const imagesResponse = $input.first().json;\nconst extractData = $('Extract Movie ID').first().json;\nconst originalData = extractData.originalData;\n\nconst BASE_URL = 'https://image.tmdb.org/t/p/';\nconst BACKDROP_SIZE = 'w1280';\nconst POSTER_SIZE = 'w500';\n\n// If movie was not found or images API failed, return NOT FOUND\nif (!extractData.movieFound || !imagesResponse.backdrops) {\n  return {\n    json: {\n      ...originalData,\n      'URL_1': 'NOT FOUND',\n      'URL_2': '', 'URL_3': '', 'URL_4': '', 'URL_5': '',\n      'URL_6': '', 'URL_7': '', 'URL_8': '', 'URL_9': '', 'URL_10': ''\n    }\n  };\n}\n\nconst backdrops = imagesResponse.backdrops || [];\nconst posters = imagesResponse.posters || [];\n\n// HARD FILTER: Only Polish or text-free images (no English for Polish TV)\nconst cleanBackdrops = backdrops.filter(img =>\n  img.iso_639_1 === null || img.iso_639_1 === 'pl'\n);\nconst cleanPosters = posters.filter(img =>\n  img.iso_639_1 === 'pl' || img.iso_639_1 === null\n);\n\n// Poster scoring - prioritize Polish\nfunction scorePoster(img) {\n  let score = 0;\n  if (img.iso_639_1 === 'pl') score += 1000;\n  if (img.iso_639_1 === null) score += 500;\n  score += (img.vote_average || 0) * 10;\n  score += Math.min(img.vote_count || 0, 100);\n  return score;\n}\n\n// Backdrop scoring - prioritize no text\nfunction scoreBackdrop(img) {\n  let score = 0;\n  if (img.iso_639_1 === null) score += 1000;\n  if (img.iso_639_1 === 'pl') score += 500;\n  score += (img.vote_average || 0) * 10;\n  score += Math.min(img.vote_count || 0, 100);\n  return score;\n}\n\n// URL_1: Best Polish poster\nconst scoredPosters = cleanPosters\n  .map(img => ({ ...img, score: scorePoster(img), fullUrl: `${BASE_URL}${POSTER_SIZE}${img.file_path}` }))\n  .sort((a, b) => b.score - a.score);\nconst firstPoster = scoredPosters[0]?.fullUrl || 'NOT FOUND';\n\n// URL_2 to URL_10: Diverse backdrops using stride selection (9 picks)\nconst scoredBackdrops = cleanBackdrops\n  .map(img => ({ ...img, score: scoreBackdrop(img), fullUrl: `${BASE_URL}${BACKDROP_SIZE}${img.file_path}` }))\n  .sort((a, b) => b.score - a.score);\n\nconst total = scoredBackdrops.length;\nconst stride = Math.max(1, Math.floor(total / 9));\nconst selectedBackdrops = [];\nfor (let i = 0; i < 9 && i * stride < total; i++) {\n  selectedBackdrops.push(scoredBackdrops[i * stride]);\n}\n\nreturn {\n  json: {\n    ...originalData,\n    'URL_1': firstPoster,\n    'URL_2': selectedBackdrops[0]?.fullUrl || '',\n    'URL_3': selectedBackdrops[1]?.fullUrl || '',\n    'URL_4': selectedBackdrops[2]?.fullUrl || '',\n    'URL_5': selectedBackdrops[3]?.fullUrl || '',\n    'URL_6': selectedBackdrops[4]?.fullUrl || '',\n    'URL_7': selectedBackdrops[5]?.fullUrl || '',\n    'URL_8': selectedBackdrops[6]?.fullUrl || '',\n    'URL_9': selectedBackdrops[7]?.fullUrl || '',\n    'URL_10': selectedBackdrops[8]?.fullUrl || ''\n  }\n};"
+          },
+          "id": "process-images",
+          "name": "Process Images",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1376,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "operation": "appendOrUpdate",
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "id"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "id"
+            },
+            "columns": {
+              "mappingMode": "defineBelow",
+              "value": {
+                "Tytuły filmów": "={{ $json[\"Tytuły filmów\"] }}",
+                "Rok": "={{ $json[\"Rok\"] }}",
+                "URL 1": "={{ $json.URL_1 }}",
+                "URL 2": "={{ $json.URL_2 }}",
+                "URL 3": "={{ $json.URL_3 }}",
+                "URL 4": "={{ $json.URL_4 }}",
+                "URL 5": "={{ $json.URL_5 }}",
+                "URL 6": "={{ $json.URL_6 }}",
+                "URL 7": "={{ $json.URL_7 }}",
+                "URL 8": "={{ $json.URL_8 }}",
+                "URL 9": "={{ $json.URL_9 }}",
+                "URL 10": "={{ $json.URL_10 }}"
+              },
+              "matchingColumns": [
+                "Tytuły filmów"
+              ],
+              "schema": [
+                {
+                  "id": "Tytuły filmów",
+                  "displayName": "Tytuły filmów",
+                  "required": false,
+                  "defaultMatch": true,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Rok",
+                  "displayName": "Rok",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "number",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "URL 1",
+                  "displayName": "URL 1",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 2",
+                  "displayName": "URL 2",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 3",
+                  "displayName": "URL 3",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 4",
+                  "displayName": "URL 4",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 5",
+                  "displayName": "URL 5",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 6",
+                  "displayName": "URL 6",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 7",
+                  "displayName": "URL 7",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 8",
+                  "displayName": "URL 8",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 9",
+                  "displayName": "URL 9",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                },
+                {
+                  "id": "URL 10",
+                  "displayName": "URL 10",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": false,
+                  "removed": false
+                }
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {}
+          },
+          "id": "update-sheet",
+          "name": "Update Google Sheet",
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.7,
+          "position": [
+            1600,
+            80
+          ],
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "cGJ5fju0HEKfZT5V",
+              "name": "[AGENCY] SHEETS - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "al-1",
+                  "name": "project_name",
+                  "value": "[DEV] Media Corp - TMDB Multi-Image Enrichment",
+                  "type": "string"
+                },
+                {
+                  "id": "al-2",
+                  "name": "workflow_name",
+                  "value": "={{ $workflow.name }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-3",
+                  "name": "execution_id",
+                  "value": "={{ $execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-4",
+                  "name": "execution_url",
+                  "value": "={{ 'https://your-instance.app.n8n.cloud/workflow/' + $workflow.id + '/executions/' + $execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-5",
+                  "name": "status",
+                  "value": "success",
+                  "type": "string"
+                },
+                {
+                  "id": "al-6",
+                  "name": "error_message",
+                  "value": "",
+                  "type": "string"
+                },
+                {
+                  "id": "al-7",
+                  "name": "time_saved_minutes",
+                  "value": "=5",
+                  "type": "number"
+                },
+                {
+                  "id": "al-8",
+                  "name": "metadata",
+                  "value": "={{ JSON.stringify({ items_processed: $itemIndex + 1, timestamp: $now.toISO() }) }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "c9b4aa4a-f86d-457d-87ec-50a92b4b0b33",
+          "name": "Prepare for automation_logs",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            704,
+            -192
+          ]
+        },
+        {
+          "parameters": {
+            "tableId": "automation_logs",
+            "dataToSend": "autoMapInputData"
+          },
+          "type": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "position": [
+            1152,
+            -192
+          ],
+          "id": "634736f8-3024-4d83-90f4-747ac3ad2789",
+          "name": "Log to automation_logs",
+          "credentials": {
+            "supabaseApi": {
+              "id": "pDckhjeF4Smhrova",
+              "name": "[AGENCY] SUPABASE - RAG"
+            }
+          }
+        },
+        {
+          "parameters": {},
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1,
+          "position": [
+            928,
+            -192
+          ],
+          "id": "51f0a6d0-139c-4fa9-be91-8434594eef9c",
+          "name": "Limit1"
+        }
+      ],
+      "connections": {
+        "On added or updated row": {
+          "main": [
+            [
+              {
+                "node": "Filter Empty URL 1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Empty URL 1": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop Over Items": {
+          "main": [
+            [
+              {
+                "node": "Prepare for automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "TMDB Search Movie",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "TMDB Search Movie": {
+          "main": [
+            [
+              {
+                "node": "Extract Movie ID",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Movie ID": {
+          "main": [
+            [
+              {
+                "node": "TMDB Get Images",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "TMDB Get Images": {
+          "main": [
+            [
+              {
+                "node": "Process Images",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Process Images": {
+          "main": [
+            [
+              {
+                "node": "Update Google Sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Google Sheet": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare for automation_logs": {
+          "main": [
+            [
+              {
+                "node": "Limit1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Limit1": {
+          "main": [
+            [
+              {
+                "node": "Log to automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "authors": "MyAgency AI",
+      "name": "Version 2f64cef7",
+      "description": "",
+      "autosaved": true
+    },
+    "tags": []
+  }
+}

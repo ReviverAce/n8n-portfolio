@@ -1,0 +1,2564 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.016Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "NFk7ok06cGmyi9TR",
+    "workflow_name": "[PROD] Client-Alpha - INVOICE AUTOMATION",
+    "active": true,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-09T13:30:12.330Z",
+    "createdAt": "2026-01-22T16:18:11.844Z",
+    "id": "NFk7ok06cGmyi9TR",
+    "name": "[PROD] Client-Alpha - INVOICE AUTOMATION",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "triggerOn": "specificFolder",
+          "folderToWatch": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Faktury nieprzetworzone",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/EXAMPLE_FOLDER_ID"
+          },
+          "event": "fileCreated",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleDriveTrigger",
+        "typeVersion": 1,
+        "position": [
+          160,
+          1384
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "Google Drive Trigger",
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "bSPX0NBDHJYwOMnX",
+            "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "download",
+          "fileId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleDrive",
+        "typeVersion": 3,
+        "position": [
+          608,
+          1232
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "Download file",
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "bSPX0NBDHJYwOMnX",
+            "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 3
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $('Google Drive Trigger').item.json.fullFileExtension.toLowerCase() }}",
+                      "rightValue": "pdf",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "2f94300a-73d3-426a-883b-135d119cd1b2"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "PDF"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 3
+                  },
+                  "conditions": [
+                    {
+                      "id": "775b1bb0-94df-41d4-a628-d90b02edb627",
+                      "leftValue": "={{ $('Google Drive Trigger').item.json.fullFileExtension.toLowerCase() }}",
+                      "rightValue": "jpg",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "JPG"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 3
+                  },
+                  "conditions": [
+                    {
+                      "id": "a4c2dab0-ca0c-40df-b05d-23e6e9dd6f1c",
+                      "leftValue": "={{ $('Google Drive Trigger').item.json.fullFileExtension }}",
+                      "rightValue": "png",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "PNG"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.4,
+        "position": [
+          1056,
+          1216
+        ],
+        "id": "a00df2a1-752e-4b1b-89bf-935eb15b3aa7",
+        "name": "Switch"
+      },
+      {
+        "parameters": {
+          "operation": "binaryToPropery",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.extractFromFile",
+        "typeVersion": 1.1,
+        "position": [
+          832,
+          1232
+        ],
+        "id": "9e337acc-78be-4641-a5e8-9ee3593d5612",
+        "name": "Extract from File"
+      },
+      {
+        "parameters": {
+          "text": "={{ $json.extracted_text_pdf ?? $json.extracted_text_image }}",
+          "schemaType": "manual",
+          "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data_wystawienia\": {\n      \"type\": \"string\",\n      \"description\": \"Data wystawienia faktury. Format preferowany: RRRR-MM-DD.\"\n    },\n    \"data_sprzedazy\": {\n      \"type\": \"string\",\n      \"description\": \"Data sprzedaży lub wykonania usługi. Format preferowany: RRRR-MM-DD.\"\n    },\n    \"numer_faktury\": {\n      \"type\": \"string\",\n      \"description\": \"Numer faktury lub dokumentu sprzedaży, który identyfikuje transakcję.\"\n    },\n    \"nazwa_sprzedawcy\": {\n      \"type\": \"string\",\n      \"description\": \"Pełna nazwa sprzedawcy (podmiotu wystawiającego fakturę) widoczna na fakturze.\"\n    },\n    \"termin_platnosci\": {\n      \"type\": \"string\",\n      \"description\": \"Termin płatności podany na fakturze, np. '14 dni', '2024-06-15' itp.\"\n    },\n    \"forma_platnosci\": {\n      \"type\": \"string\",\n      \"description\": \"Forma płatności, np. 'przelew', 'gotówka', 'karta płatnicza'.\"\n    },\n    \"pozycje\": {\n      \"type\": \"array\",\n      \"description\": \"Lista pozycji z faktury (każdy towar lub usługa).\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"nazwa_towaru\": {\n            \"type\": \"string\",\n            \"description\": \"Nazwa towaru lub usługi.\"\n          },\n          \"ilosc_towaru\": {\n            \"type\": \"number\",\n            \"description\": \"Ilość sprzedanego towaru.\"\n          },\n          \"cena_towaru\": {\n            \"type\": \"number\",\n            \"description\": \"Cena jednostkowa netto.\"\n          }\n        },\n        \"required\": [\n          \"nazwa_towaru\",\n          \"ilosc_towaru\",\n          \"cena_towaru\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data_wystawienia\",\n    \"data_sprzedazy\",\n    \"numer_faktury\",\n    \"nazwa_sprzedawcy\",\n    \"termin_platnosci\",\n    \"forma_platnosci\",\n    \"pozycje\"\n  ]\n}\n",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+        "typeVersion": 1.2,
+        "position": [
+          1952,
+          1232
+        ],
+        "id": "ba043a5e-5fb0-45fd-8c0c-1ba07e28af2a",
+        "name": "Information Extractor",
+        "retryOnFail": true,
+        "agencytBetweenTries": 5000
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4.1-mini"
+          },
+          "builtInTools": {},
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.3,
+        "position": [
+          2024,
+          1456
+        ],
+        "id": "5e98ba73-c021-4713-ab15-b0cfdd22989e",
+        "name": "OpenAI Chat Model",
+        "retryOnFail": true,
+        "agencytBetweenTries": 5000,
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "[AGENCY] OPENAI - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Faktury",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Arkusz1",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "numer faktury": "={{ $('Split Out').item.json.output.numer_faktury }}",
+              "data wystawienia": "={{ $('Split Out').item.json.output.data_wystawienia }}",
+              "data sprzedaży": "={{ $('Split Out').item.json.output.data_sprzedazy }}",
+              "termin płatności": "={{ $('Split Out').item.json.output.termin_platnosci }}",
+              "forma płatności": "={{ $('Split Out').item.json.output.forma_platnosci }}",
+              "nazwa towaru": "={{ $('Split Out').item.json['output.pozycje'].nazwa_towaru }}",
+              "ilość towaru": "={{ $('Split Out').item.json['output.pozycje'].ilosc_towaru }}",
+              "nazwa sprzedawcy": "={{ $('Split Out').item.json.output.nazwa_sprzedawcy }}",
+              "cena towaru": "={{ $('Split Out').item.json['output.pozycje'].cena_towaru }}",
+              "link do dokumentu": "={{ $json['link do dokumentu'] }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "numer faktury",
+                "displayName": "numer faktury",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "data wystawienia",
+                "displayName": "data wystawienia",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "data sprzedaży",
+                "displayName": "data sprzedaży",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "nazwa sprzedawcy",
+                "displayName": "nazwa sprzedawcy",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "termin płatności",
+                "displayName": "termin płatności",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "forma płatności",
+                "displayName": "forma płatności",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "nazwa towaru",
+                "displayName": "nazwa towaru",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "ilość towaru",
+                "displayName": "ilość towaru",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "cena towaru",
+                "displayName": "cena towaru",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "link do dokumentu",
+                "displayName": "link do dokumentu",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          3872,
+          1136
+        ],
+        "id": "4ecb5bbe-0ba6-4db2-840a-1c3209293191",
+        "name": "Append row in sheet",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "2dhp5Yi9ZGKD1dCG",
+            "name": "[Client-Alpha] SHEETS - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "move",
+          "fileId": {
+            "__rl": true,
+            "value": "={{ $('Download file').item.json.id }}",
+            "mode": "id"
+          },
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Faktury przetworzone",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/EXAMPLE_FOLDER_ID"
+          }
+        },
+        "type": "n8n-nodes-base.googleDrive",
+        "typeVersion": 3,
+        "position": [
+          4320,
+          1456
+        ],
+        "id": "9ec5e4e7-2cb0-4b21-8ce4-2d75d7853f8d",
+        "name": "Move to Processed",
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "bSPX0NBDHJYwOMnX",
+            "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://vision.googleapis.com/v1/images:annotate",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "YOUR_GOOGLE_VISION_API_KEY"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"requests\": [\n    {\n      \"image\": {\n        \"content\": \"{{$json.data}}\"\n      },\n      \"features\": [\n        { \"type\": \"DOCUMENT_TEXT_DETECTION\" }\n      ]\n    }\n  ]\n}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1504,
+          1356
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "OCR API - Image"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://vision.googleapis.com/v1/files:annotate",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "YOUR_GOOGLE_VISION_API_KEY"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"requests\": [\n    {\n      \"inputConfig\": {\n        \"content\": \"{{ $('Extract from File').item.json.data }}\",\n        \"mimeType\": \"application/pdf\"\n      },\n      \"features\": [\n        {\n          \"type\": \"DOCUMENT_TEXT_DETECTION\"\n        }\n      ]\n    }\n  ]\n}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1280,
+          1164
+        ],
+        "id": "4d6fce02-e9f6-4cfd-a4e1-78c9991bb203",
+        "name": "OCR API - PDF"
+      },
+      {
+        "parameters": {
+          "jsCode": "// n8n Code node (Run Once for All Items) - aggregate OCR text from PDF pages\n\nlet aggregatedText = '';\nconst pageTexts = [];\n\n// helper: safely extract page text from a single page response\nfunction extractPageText(page) {\n  // Most common for Vision OCR:\n  // - page.fullTextAnnotation.text\n  // Fallback:\n  // - page.textAnnotations[0].description\n  if (page?.fullTextAnnotation?.text) return page.fullTextAnnotation.text;\n  if (Array.isArray(page?.textAnnotations) && page.textAnnotations[0]?.description) {\n    return page.textAnnotations[0].description;\n  }\n  return '';\n}\n\n// This handles two common shapes:\n// A) Each input item is a \"page\" item: item.json.responses[0] is the page response\n// B) One item contains multiple pages: item.json.responses[0].responses is an array of pages\n\nlet pageCounter = 0;\n\nfor (const item of $input.all()) {\n  // Case B: nested pages array\n  const nestedPages = item?.json?.responses?.[0]?.responses;\n  if (Array.isArray(nestedPages)) {\n    for (const page of nestedPages) {\n      const pageText = extractPageText(page);\n      if (pageText.trim()) {\n        pageCounter += 1;\n        pageTexts.push({ pageNumber: pageCounter, text: pageText });\n        aggregatedText += pageText.trim() + '\\n\\n';\n      }\n    }\n    continue;\n  }\n\n  // Case A: page response is directly at responses[0] (or sometimes in item.json.responses)\n  const directPage =\n    item?.json?.responses?.[0] ??\n    item?.json?.responses ??\n    item?.json;\n\n  const pageText = extractPageText(directPage);\n  if (pageText.trim()) {\n    pageCounter += 1;\n    pageTexts.push({ pageNumber: pageCounter, text: pageText });\n    aggregatedText += pageText.trim() + '\\n\\n';\n  }\n}\n\n// Final cleanup\naggregatedText = aggregatedText.trim();\n\nreturn [\n  {\n    json: {\n      aggregatedText,\n      totalPages: pageTexts.length,\n      pages: pageTexts\n    }\n  }\n];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1504,
+          1164
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "Aggregate data"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "88c93bac-49a5-4553-8fcc-55a13ffac47b",
+                "name": "extracted_text_pdf",
+                "value": "={{ $json.aggregatedText }}",
+                "type": "string"
+              },
+              {
+                "id": "EXAMPLE_GOOGLE_ID",
+                "name": "extracted_text_image",
+                "value": "={{ $json.responses[0].fullTextAnnotation.text }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1728,
+          1232
+        ],
+        "id": "3ccf3b42-3d16-409e-bc7f-5bdeac1f2495",
+        "name": "Edit Fields"
+      },
+      {
+        "parameters": {
+          "fieldToSplitOut": "output.pozycje",
+          "include": "allOtherFields",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1,
+        "position": [
+          3424,
+          1136
+        ],
+        "id": "fdb30856-40bd-4b64-9eff-fe12860a79ff",
+        "name": "Split Out"
+      },
+      {
+        "parameters": {
+          "tableId": "Invoices",
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "numer faktury",
+                "fieldValue": "={{ $json.output.numer_faktury }}"
+              },
+              {
+                "fieldId": "data wystawienia",
+                "fieldValue": "={{ $json.output.data_wystawienia }}"
+              },
+              {
+                "fieldId": "data sprzedaży",
+                "fieldValue": "={{ $json.output.data_sprzedazy }}"
+              },
+              {
+                "fieldId": "nazwa sprzedawcy",
+                "fieldValue": "={{ $json.output.nazwa_sprzedawcy }}"
+              },
+              {
+                "fieldId": "termin płatności",
+                "fieldValue": "={{ $json.output.termin_platnosci }}"
+              },
+              {
+                "fieldId": "forma płatności",
+                "fieldValue": "={{ $json.output.forma_platnosci }}"
+              },
+              {
+                "fieldId": "nazwa towaru",
+                "fieldValue": "={{ $json['output.pozycje'].nazwa_towaru }}"
+              },
+              {
+                "fieldId": "ilość towaru",
+                "fieldValue": "={{ $json['output.pozycje'].ilosc_towaru }}"
+              },
+              {
+                "fieldId": "cena towaru",
+                "fieldValue": "={{ $json['output.pozycje'].cena_towaru }}"
+              },
+              {
+                "fieldId": "link do dokumentu",
+                "fieldValue": "={{ $('Download file').item.json.webViewLink }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          3648,
+          1136
+        ],
+        "id": "5a91e067-824f-49e2-815e-7011d9c07bf5",
+        "name": "Add invoice to database",
+        "credentials": {
+          "supabaseApi": {
+            "id": "LyBj0lWVGeJXEyUf",
+            "name": "[Client-Alpha] SUPABASE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "tableId": "Invoices",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "numer faktury",
+                "keyValue": "={{ $json.output.numer_faktury }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          2304,
+          1400
+        ],
+        "id": "3444e858-b2c4-455d-915e-b4585f702963",
+        "name": "Get a row",
+        "alwaysOutputData": true,
+        "credentials": {
+          "supabaseApi": {
+            "id": "LyBj0lWVGeJXEyUf",
+            "name": "[Client-Alpha] SUPABASE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "content": "",
+          "height": 704,
+          "width": 4384
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          96,
+          912
+        ],
+        "typeVersion": 1,
+        "id": "92d9c3ed-5860-4351-a19e-920da4e0f4b9",
+        "name": "Sticky Note"
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "EXAMPLE_DRIVE_ID",
+            "mode": "list",
+            "cachedResultName": "Faktury",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Arkusz1",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+          },
+          "filtersUI": {
+            "values": [
+              {
+                "lookupColumn": "numer faktury",
+                "lookupValue": "={{ $json.output.numer_faktury }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          2304,
+          1088
+        ],
+        "id": "76c305d7-3b89-4d9b-8ac9-e86e0e5a4eb4",
+        "name": "Get row(s) in sheet",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "2dhp5Yi9ZGKD1dCG",
+            "name": "[Client-Alpha] SHEETS - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "06404a9d-dac5-4d6f-926d-3c067ff0ff42",
+                "name": "existsInDb",
+                "value": "={{ !!$json['numer faktury'] }}",
+                "type": "boolean"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2752,
+          1400
+        ],
+        "id": "7947dad4-2542-4521-98a0-ac0ac7a98367",
+        "name": "DB flag"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "0ed371d9-1c0c-4abe-a556-94be6bd5aa9d",
+                "name": "existsInSheet",
+                "value": "={{ !!$json['numer faktury'] }}",
+                "type": "boolean"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2752,
+          1088
+        ],
+        "id": "5e1f2f31-2768-44a5-9839-d1b82f3dadc6",
+        "name": "Sheet flag"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineByPosition",
+          "numberInputs": 3,
+          "options": {}
+        },
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          2976,
+          1244
+        ],
+        "id": "8d69bd41-104b-463b-bdbe-feb4e0b5a85b",
+        "name": "Merge flags and output"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "d93a3ec7-47bc-4cef-83ce-864c9b4e0368",
+                "leftValue": "={{ $json.existsInDb || $json.existsInSheet }}",
+                "rightValue": "false",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          3200,
+          1260
+        ],
+        "id": "be7afd08-9b27-4f00-bdc7-354d285df068",
+        "name": "Check if invoice already exists"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          4096,
+          1136
+        ],
+        "id": "c55465f3-3538-4405-8d71-ac677061efe4",
+        "name": "Limit"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          2528,
+          1088
+        ],
+        "id": "EXAMPLE_GOOGLE_ID",
+        "name": "Get first item"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          2528,
+          1400
+        ],
+        "id": "f6daf28b-ad9f-49b2-944b-3a3427ca274b",
+        "name": "Get first item1"
+      },
+      {
+        "parameters": {
+          "operation": "deleteFile",
+          "fileId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $('Google Drive Trigger').item.json.id }}"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleDrive",
+        "typeVersion": 3,
+        "position": [
+          3424,
+          1400
+        ],
+        "id": "c375db09-ce23-4515-a62f-2242ae022f74",
+        "name": "Delete a file",
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "bSPX0NBDHJYwOMnX",
+            "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          384,
+          1384
+        ],
+        "id": "4469c046-5693-408c-b500-294ae9fedb50",
+        "name": "Loop Over Items"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "al-1",
+                "name": "project_name",
+                "value": "Client-Alpha",
+                "type": "string"
+              },
+              {
+                "id": "al-2",
+                "name": "workflow_name",
+                "value": "={{ $workflow.name }}",
+                "type": "string"
+              },
+              {
+                "id": "al-3",
+                "name": "execution_id",
+                "value": "={{ $execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-4",
+                "name": "execution_url",
+                "value": "={{ 'https://your-instance.app.n8n.cloud/workflow/' + $workflow.id + '/executions/' + $execution.id }}",
+                "type": "string"
+              },
+              {
+                "id": "al-5",
+                "name": "status",
+                "value": "success",
+                "type": "string"
+              },
+              {
+                "id": "al-6",
+                "name": "error_message",
+                "value": "",
+                "type": "string"
+              },
+              {
+                "id": "al-7",
+                "name": "time_saved_minutes",
+                "value": "=5",
+                "type": "number"
+              },
+              {
+                "id": "al-8",
+                "name": "metadata",
+                "value": "={{ JSON.stringify({ items_processed: $itemIndex + 1, timestamp: $now.toISO() }) }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "2a6ee9b0-3a67-4df9-9a56-9750982942bd",
+        "name": "Prepare for automation_logs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          608,
+          1024
+        ]
+      },
+      {
+        "parameters": {
+          "tableId": "automation_logs",
+          "dataToSend": "autoMapInputData"
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          1056,
+          1024
+        ],
+        "id": "fde1b8bd-2e46-4afa-97e4-4bb2e7432a83",
+        "name": "Log to automation_logs",
+        "credentials": {
+          "supabaseApi": {
+            "id": "LyBj0lWVGeJXEyUf",
+            "name": "[Client-Alpha] SUPABASE - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          832,
+          1024
+        ],
+        "id": "7dcc7854-68b1-4577-bb94-29ad07107c7f",
+        "name": "Limit1"
+      }
+    ],
+    "connections": {
+      "Google Drive Trigger": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download file": {
+        "main": [
+          [
+            {
+              "node": "Extract from File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch": {
+        "main": [
+          [
+            {
+              "node": "OCR API - PDF",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "OCR API - Image",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "OCR API - Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract from File": {
+        "main": [
+          [
+            {
+              "node": "Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Information Extractor",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Information Extractor": {
+        "main": [
+          [
+            {
+              "node": "Get row(s) in sheet",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get a row",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge flags and output",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Limit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OCR API - Image": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OCR API - PDF": {
+        "main": [
+          [
+            {
+              "node": "Aggregate data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate data": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Information Extractor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Add invoice to database",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Add invoice to database": {
+        "main": [
+          [
+            {
+              "node": "Append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get a row": {
+        "main": [
+          [
+            {
+              "node": "Get first item1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get row(s) in sheet": {
+        "main": [
+          [
+            {
+              "node": "Get first item",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB flag": {
+        "main": [
+          [
+            {
+              "node": "Merge flags and output",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Sheet flag": {
+        "main": [
+          [
+            {
+              "node": "Merge flags and output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge flags and output": {
+        "main": [
+          [
+            {
+              "node": "Check if invoice already exists",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if invoice already exists": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Delete a file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit": {
+        "main": [
+          [
+            {
+              "node": "Move to Processed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get first item": {
+        "main": [
+          [
+            {
+              "node": "Sheet flag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get first item1": {
+        "main": [
+          [
+            {
+              "node": "DB flag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Move to Processed": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete a file": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Prepare for automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Download file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare for automation_logs": {
+        "main": [
+          [
+            {
+              "node": "Limit1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit1": {
+        "main": [
+          [
+            {
+              "node": "Log to automation_logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": false,
+      "timeSavedMode": "fixed",
+      "callerPolicy": "workflowsFromSameOwner",
+      "errorWorkflow": "vc8vc7Z6tuluzYVJ",
+      "binaryMode": "separate"
+    },
+    "staticData": {
+      "node:Google Drive Trigger": {
+        "lastTimeChecked": "2026-03-25T20:24:01Z"
+      }
+    },
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "84ada3fb-1f92-4f52-b9d0-9833001c8ba0",
+    "activeVersionId": "84ada3fb-1f92-4f52-b9d0-9833001c8ba0",
+    "triggerCount": 1,
+    "shared": [
+      {
+        "updatedAt": "2026-01-22T16:18:11.853Z",
+        "createdAt": "2026-01-22T16:18:11.853Z",
+        "role": "workflow:owner",
+        "workflowId": "NFk7ok06cGmyi9TR",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": {
+      "updatedAt": "2026-02-09T13:29:52.000Z",
+      "createdAt": "2026-02-09T13:29:49.901Z",
+      "versionId": "84ada3fb-1f92-4f52-b9d0-9833001c8ba0",
+      "workflowId": "NFk7ok06cGmyi9TR",
+      "nodes": [
+        {
+          "parameters": {
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            },
+            "triggerOn": "specificFolder",
+            "folderToWatch": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Faktury nieprzetworzone",
+              "cachedResultUrl": "https://drive.google.com/drive/folders/EXAMPLE_FOLDER_ID"
+            },
+            "event": "fileCreated",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "position": [
+            160,
+            1384
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "Google Drive Trigger",
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "bSPX0NBDHJYwOMnX",
+              "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "operation": "download",
+            "fileId": {
+              "__rl": true,
+              "value": "={{ $json.id }}",
+              "mode": "id"
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleDrive",
+          "typeVersion": 3,
+          "position": [
+            608,
+            1232
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "Download file",
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "bSPX0NBDHJYwOMnX",
+              "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "leftValue": "={{ $('Google Drive Trigger').item.json.fullFileExtension.toLowerCase() }}",
+                        "rightValue": "pdf",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "id": "2f94300a-73d3-426a-883b-135d119cd1b2"
+                      }
+                    ],
+                    "combinator": "and"
+                  },
+                  "renameOutput": true,
+                  "outputKey": "PDF"
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "775b1bb0-94df-41d4-a628-d90b02edb627",
+                        "leftValue": "={{ $('Google Drive Trigger').item.json.fullFileExtension.toLowerCase() }}",
+                        "rightValue": "jpg",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  },
+                  "renameOutput": true,
+                  "outputKey": "JPG"
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "a4c2dab0-ca0c-40df-b05d-23e6e9dd6f1c",
+                        "leftValue": "={{ $('Google Drive Trigger').item.json.fullFileExtension }}",
+                        "rightValue": "png",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals",
+                          "name": "filter.operator.equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  },
+                  "renameOutput": true,
+                  "outputKey": "PNG"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 3.4,
+          "position": [
+            1056,
+            1216
+          ],
+          "id": "a00df2a1-752e-4b1b-89bf-935eb15b3aa7",
+          "name": "Switch"
+        },
+        {
+          "parameters": {
+            "operation": "binaryToPropery",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.extractFromFile",
+          "typeVersion": 1.1,
+          "position": [
+            832,
+            1232
+          ],
+          "id": "9e337acc-78be-4641-a5e8-9ee3593d5612",
+          "name": "Extract from File"
+        },
+        {
+          "parameters": {
+            "text": "={{ $json.extracted_text_pdf ?? $json.extracted_text_image }}",
+            "schemaType": "manual",
+            "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data_wystawienia\": {\n      \"type\": \"string\",\n      \"description\": \"Data wystawienia faktury. Format preferowany: RRRR-MM-DD.\"\n    },\n    \"data_sprzedazy\": {\n      \"type\": \"string\",\n      \"description\": \"Data sprzedaży lub wykonania usługi. Format preferowany: RRRR-MM-DD.\"\n    },\n    \"numer_faktury\": {\n      \"type\": \"string\",\n      \"description\": \"Numer faktury lub dokumentu sprzedaży, który identyfikuje transakcję.\"\n    },\n    \"nazwa_sprzedawcy\": {\n      \"type\": \"string\",\n      \"description\": \"Pełna nazwa sprzedawcy (podmiotu wystawiającego fakturę) widoczna na fakturze.\"\n    },\n    \"termin_platnosci\": {\n      \"type\": \"string\",\n      \"description\": \"Termin płatności podany na fakturze, np. '14 dni', '2024-06-15' itp.\"\n    },\n    \"forma_platnosci\": {\n      \"type\": \"string\",\n      \"description\": \"Forma płatności, np. 'przelew', 'gotówka', 'karta płatnicza'.\"\n    },\n    \"pozycje\": {\n      \"type\": \"array\",\n      \"description\": \"Lista pozycji z faktury (każdy towar lub usługa).\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"nazwa_towaru\": {\n            \"type\": \"string\",\n            \"description\": \"Nazwa towaru lub usługi.\"\n          },\n          \"ilosc_towaru\": {\n            \"type\": \"number\",\n            \"description\": \"Ilość sprzedanego towaru.\"\n          },\n          \"cena_towaru\": {\n            \"type\": \"number\",\n            \"description\": \"Cena jednostkowa netto.\"\n          }\n        },\n        \"required\": [\n          \"nazwa_towaru\",\n          \"ilosc_towaru\",\n          \"cena_towaru\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"data_wystawienia\",\n    \"data_sprzedazy\",\n    \"numer_faktury\",\n    \"nazwa_sprzedawcy\",\n    \"termin_platnosci\",\n    \"forma_platnosci\",\n    \"pozycje\"\n  ]\n}\n",
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+          "typeVersion": 1.2,
+          "position": [
+            1952,
+            1232
+          ],
+          "id": "ba043a5e-5fb0-45fd-8c0c-1ba07e28af2a",
+          "name": "Information Extractor",
+          "retryOnFail": true,
+          "agencytBetweenTries": 5000
+        },
+        {
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "builtInTools": {},
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1.3,
+          "position": [
+            2024,
+            1456
+          ],
+          "id": "5e98ba73-c021-4713-ab15-b0cfdd22989e",
+          "name": "OpenAI Chat Model",
+          "retryOnFail": true,
+          "agencytBetweenTries": 5000,
+          "credentials": {
+            "openAiApi": {
+              "id": "0PmreRG9VqAnmyU6",
+              "name": "[AGENCY] OPENAI - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "operation": "append",
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Faktury",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Arkusz1",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+            },
+            "columns": {
+              "mappingMode": "defineBelow",
+              "value": {
+                "numer faktury": "={{ $('Split Out').item.json.output.numer_faktury }}",
+                "data wystawienia": "={{ $('Split Out').item.json.output.data_wystawienia }}",
+                "data sprzedaży": "={{ $('Split Out').item.json.output.data_sprzedazy }}",
+                "termin płatności": "={{ $('Split Out').item.json.output.termin_platnosci }}",
+                "forma płatności": "={{ $('Split Out').item.json.output.forma_platnosci }}",
+                "nazwa towaru": "={{ $('Split Out').item.json['output.pozycje'].nazwa_towaru }}",
+                "ilość towaru": "={{ $('Split Out').item.json['output.pozycje'].ilosc_towaru }}",
+                "nazwa sprzedawcy": "={{ $('Split Out').item.json.output.nazwa_sprzedawcy }}",
+                "cena towaru": "={{ $('Split Out').item.json['output.pozycje'].cena_towaru }}",
+                "link do dokumentu": "={{ $json['link do dokumentu'] }}"
+              },
+              "matchingColumns": [],
+              "schema": [
+                {
+                  "id": "numer faktury",
+                  "displayName": "numer faktury",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "data wystawienia",
+                  "displayName": "data wystawienia",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "data sprzedaży",
+                  "displayName": "data sprzedaży",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "nazwa sprzedawcy",
+                  "displayName": "nazwa sprzedawcy",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                },
+                {
+                  "id": "termin płatności",
+                  "displayName": "termin płatności",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "forma płatności",
+                  "displayName": "forma płatności",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "nazwa towaru",
+                  "displayName": "nazwa towaru",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "ilość towaru",
+                  "displayName": "ilość towaru",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "cena towaru",
+                  "displayName": "cena towaru",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "link do dokumentu",
+                  "displayName": "link do dokumentu",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                }
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.7,
+          "position": [
+            3872,
+            1136
+          ],
+          "id": "4ecb5bbe-0ba6-4db2-840a-1c3209293191",
+          "name": "Append row in sheet",
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "2dhp5Yi9ZGKD1dCG",
+              "name": "[Client-Alpha] SHEETS - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "operation": "move",
+            "fileId": {
+              "__rl": true,
+              "value": "={{ $('Download file').item.json.id }}",
+              "mode": "id"
+            },
+            "driveId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "My Drive"
+            },
+            "folderId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Faktury przetworzone",
+              "cachedResultUrl": "https://drive.google.com/drive/folders/EXAMPLE_FOLDER_ID"
+            }
+          },
+          "type": "n8n-nodes-base.googleDrive",
+          "typeVersion": 3,
+          "position": [
+            4320,
+            1456
+          ],
+          "id": "9ec5e4e7-2cb0-4b21-8ce4-2d75d7853f8d",
+          "name": "Move to Processed",
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "bSPX0NBDHJYwOMnX",
+              "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "https://vision.googleapis.com/v1/images:annotate",
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "key",
+                  "value": "YOUR_GOOGLE_VISION_API_KEY"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"requests\": [\n    {\n      \"image\": {\n        \"content\": \"{{$json.data}}\"\n      },\n      \"features\": [\n        { \"type\": \"DOCUMENT_TEXT_DETECTION\" }\n      ]\n    }\n  ]\n}",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.3,
+          "position": [
+            1504,
+            1356
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "OCR API - Image"
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "https://vision.googleapis.com/v1/files:annotate",
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "key",
+                  "value": "YOUR_GOOGLE_VISION_API_KEY"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"requests\": [\n    {\n      \"inputConfig\": {\n        \"content\": \"{{ $('Extract from File').item.json.data }}\",\n        \"mimeType\": \"application/pdf\"\n      },\n      \"features\": [\n        {\n          \"type\": \"DOCUMENT_TEXT_DETECTION\"\n        }\n      ]\n    }\n  ]\n}",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.3,
+          "position": [
+            1280,
+            1164
+          ],
+          "id": "4d6fce02-e9f6-4cfd-a4e1-78c9991bb203",
+          "name": "OCR API - PDF"
+        },
+        {
+          "parameters": {
+            "jsCode": "// n8n Code node (Run Once for All Items) - aggregate OCR text from PDF pages\n\nlet aggregatedText = '';\nconst pageTexts = [];\n\n// helper: safely extract page text from a single page response\nfunction extractPageText(page) {\n  // Most common for Vision OCR:\n  // - page.fullTextAnnotation.text\n  // Fallback:\n  // - page.textAnnotations[0].description\n  if (page?.fullTextAnnotation?.text) return page.fullTextAnnotation.text;\n  if (Array.isArray(page?.textAnnotations) && page.textAnnotations[0]?.description) {\n    return page.textAnnotations[0].description;\n  }\n  return '';\n}\n\n// This handles two common shapes:\n// A) Each input item is a \"page\" item: item.json.responses[0] is the page response\n// B) One item contains multiple pages: item.json.responses[0].responses is an array of pages\n\nlet pageCounter = 0;\n\nfor (const item of $input.all()) {\n  // Case B: nested pages array\n  const nestedPages = item?.json?.responses?.[0]?.responses;\n  if (Array.isArray(nestedPages)) {\n    for (const page of nestedPages) {\n      const pageText = extractPageText(page);\n      if (pageText.trim()) {\n        pageCounter += 1;\n        pageTexts.push({ pageNumber: pageCounter, text: pageText });\n        aggregatedText += pageText.trim() + '\\n\\n';\n      }\n    }\n    continue;\n  }\n\n  // Case A: page response is directly at responses[0] (or sometimes in item.json.responses)\n  const directPage =\n    item?.json?.responses?.[0] ??\n    item?.json?.responses ??\n    item?.json;\n\n  const pageText = extractPageText(directPage);\n  if (pageText.trim()) {\n    pageCounter += 1;\n    pageTexts.push({ pageNumber: pageCounter, text: pageText });\n    aggregatedText += pageText.trim() + '\\n\\n';\n  }\n}\n\n// Final cleanup\naggregatedText = aggregatedText.trim();\n\nreturn [\n  {\n    json: {\n      aggregatedText,\n      totalPages: pageTexts.length,\n      pages: pageTexts\n    }\n  }\n];\n"
+          },
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1504,
+            1164
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "Aggregate data"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "88c93bac-49a5-4553-8fcc-55a13ffac47b",
+                  "name": "extracted_text_pdf",
+                  "value": "={{ $json.aggregatedText }}",
+                  "type": "string"
+                },
+                {
+                  "id": "EXAMPLE_GOOGLE_ID",
+                  "name": "extracted_text_image",
+                  "value": "={{ $json.responses[0].fullTextAnnotation.text }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            1728,
+            1232
+          ],
+          "id": "3ccf3b42-3d16-409e-bc7f-5bdeac1f2495",
+          "name": "Edit Fields"
+        },
+        {
+          "parameters": {
+            "fieldToSplitOut": "output.pozycje",
+            "include": "allOtherFields",
+            "options": {}
+          },
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1,
+          "position": [
+            3424,
+            1136
+          ],
+          "id": "fdb30856-40bd-4b64-9eff-fe12860a79ff",
+          "name": "Split Out"
+        },
+        {
+          "parameters": {
+            "tableId": "Invoices",
+            "fieldsUi": {
+              "fieldValues": [
+                {
+                  "fieldId": "numer faktury",
+                  "fieldValue": "={{ $json.output.numer_faktury }}"
+                },
+                {
+                  "fieldId": "data wystawienia",
+                  "fieldValue": "={{ $json.output.data_wystawienia }}"
+                },
+                {
+                  "fieldId": "data sprzedaży",
+                  "fieldValue": "={{ $json.output.data_sprzedazy }}"
+                },
+                {
+                  "fieldId": "nazwa sprzedawcy",
+                  "fieldValue": "={{ $json.output.nazwa_sprzedawcy }}"
+                },
+                {
+                  "fieldId": "termin płatności",
+                  "fieldValue": "={{ $json.output.termin_platnosci }}"
+                },
+                {
+                  "fieldId": "forma płatności",
+                  "fieldValue": "={{ $json.output.forma_platnosci }}"
+                },
+                {
+                  "fieldId": "nazwa towaru",
+                  "fieldValue": "={{ $json['output.pozycje'].nazwa_towaru }}"
+                },
+                {
+                  "fieldId": "ilość towaru",
+                  "fieldValue": "={{ $json['output.pozycje'].ilosc_towaru }}"
+                },
+                {
+                  "fieldId": "cena towaru",
+                  "fieldValue": "={{ $json['output.pozycje'].cena_towaru }}"
+                },
+                {
+                  "fieldId": "link do dokumentu",
+                  "fieldValue": "={{ $('Download file').item.json.webViewLink }}"
+                }
+              ]
+            }
+          },
+          "type": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "position": [
+            3648,
+            1136
+          ],
+          "id": "5a91e067-824f-49e2-815e-7011d9c07bf5",
+          "name": "Add invoice to database",
+          "credentials": {
+            "supabaseApi": {
+              "id": "LyBj0lWVGeJXEyUf",
+              "name": "[Client-Alpha] SUPABASE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "operation": "get",
+            "tableId": "Invoices",
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "numer faktury",
+                  "keyValue": "={{ $json.output.numer_faktury }}"
+                }
+              ]
+            }
+          },
+          "type": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "position": [
+            2304,
+            1400
+          ],
+          "id": "3444e858-b2c4-455d-915e-b4585f702963",
+          "name": "Get a row",
+          "alwaysOutputData": true,
+          "credentials": {
+            "supabaseApi": {
+              "id": "LyBj0lWVGeJXEyUf",
+              "name": "[Client-Alpha] SUPABASE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "content": "",
+            "height": 704,
+            "width": 4384
+          },
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            96,
+            912
+          ],
+          "typeVersion": 1,
+          "id": "92d9c3ed-5860-4351-a19e-920da4e0f4b9",
+          "name": "Sticky Note"
+        },
+        {
+          "parameters": {
+            "documentId": {
+              "__rl": true,
+              "value": "EXAMPLE_DRIVE_ID",
+              "mode": "list",
+              "cachedResultName": "Faktury",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Arkusz1",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit#gid=0"
+            },
+            "filtersUI": {
+              "values": [
+                {
+                  "lookupColumn": "numer faktury",
+                  "lookupValue": "={{ $json.output.numer_faktury }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.7,
+          "position": [
+            2304,
+            1088
+          ],
+          "id": "76c305d7-3b89-4d9b-8ac9-e86e0e5a4eb4",
+          "name": "Get row(s) in sheet",
+          "alwaysOutputData": true,
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "2dhp5Yi9ZGKD1dCG",
+              "name": "[Client-Alpha] SHEETS - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "06404a9d-dac5-4d6f-926d-3c067ff0ff42",
+                  "name": "existsInDb",
+                  "value": "={{ !!$json['numer faktury'] }}",
+                  "type": "boolean"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            2752,
+            1400
+          ],
+          "id": "7947dad4-2542-4521-98a0-ac0ac7a98367",
+          "name": "DB flag"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "0ed371d9-1c0c-4abe-a556-94be6bd5aa9d",
+                  "name": "existsInSheet",
+                  "value": "={{ !!$json['numer faktury'] }}",
+                  "type": "boolean"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            2752,
+            1088
+          ],
+          "id": "5e1f2f31-2768-44a5-9839-d1b82f3dadc6",
+          "name": "Sheet flag"
+        },
+        {
+          "parameters": {
+            "mode": "combine",
+            "combineBy": "combineByPosition",
+            "numberInputs": 3,
+            "options": {}
+          },
+          "type": "n8n-nodes-base.merge",
+          "typeVersion": 3.2,
+          "position": [
+            2976,
+            1244
+          ],
+          "id": "8d69bd41-104b-463b-bdbe-feb4e0b5a85b",
+          "name": "Merge flags and output"
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict",
+                "version": 3
+              },
+              "conditions": [
+                {
+                  "id": "d93a3ec7-47bc-4cef-83ce-864c9b4e0368",
+                  "leftValue": "={{ $json.existsInDb || $json.existsInSheet }}",
+                  "rightValue": "false",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "false",
+                    "singleValue": true
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            3200,
+            1260
+          ],
+          "id": "be7afd08-9b27-4f00-bdc7-354d285df068",
+          "name": "Check if invoice already exists"
+        },
+        {
+          "parameters": {},
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1,
+          "position": [
+            4096,
+            1136
+          ],
+          "id": "c55465f3-3538-4405-8d71-ac677061efe4",
+          "name": "Limit"
+        },
+        {
+          "parameters": {},
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1,
+          "position": [
+            2528,
+            1088
+          ],
+          "id": "EXAMPLE_GOOGLE_ID",
+          "name": "Get first item"
+        },
+        {
+          "parameters": {},
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1,
+          "position": [
+            2528,
+            1400
+          ],
+          "id": "f6daf28b-ad9f-49b2-944b-3a3427ca274b",
+          "name": "Get first item1"
+        },
+        {
+          "parameters": {
+            "operation": "deleteFile",
+            "fileId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $('Google Drive Trigger').item.json.id }}"
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleDrive",
+          "typeVersion": 3,
+          "position": [
+            3424,
+            1400
+          ],
+          "id": "c375db09-ce23-4515-a62f-2242ae022f74",
+          "name": "Delete a file",
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "bSPX0NBDHJYwOMnX",
+              "name": "[Client-Alpha] GOOGLE DRIVE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "options": {}
+          },
+          "type": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 3,
+          "position": [
+            384,
+            1384
+          ],
+          "id": "4469c046-5693-408c-b500-294ae9fedb50",
+          "name": "Loop Over Items"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "al-1",
+                  "name": "project_name",
+                  "value": "Client-Alpha",
+                  "type": "string"
+                },
+                {
+                  "id": "al-2",
+                  "name": "workflow_name",
+                  "value": "={{ $workflow.name }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-3",
+                  "name": "execution_id",
+                  "value": "={{ $execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-4",
+                  "name": "execution_url",
+                  "value": "={{ 'https://your-instance.app.n8n.cloud/workflow/' + $workflow.id + '/executions/' + $execution.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "al-5",
+                  "name": "status",
+                  "value": "success",
+                  "type": "string"
+                },
+                {
+                  "id": "al-6",
+                  "name": "error_message",
+                  "value": "",
+                  "type": "string"
+                },
+                {
+                  "id": "al-7",
+                  "name": "time_saved_minutes",
+                  "value": "=5",
+                  "type": "number"
+                },
+                {
+                  "id": "al-8",
+                  "name": "metadata",
+                  "value": "={{ JSON.stringify({ items_processed: $itemIndex + 1, timestamp: $now.toISO() }) }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "2a6ee9b0-3a67-4df9-9a56-9750982942bd",
+          "name": "Prepare for automation_logs",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            608,
+            1024
+          ]
+        },
+        {
+          "parameters": {
+            "tableId": "automation_logs",
+            "dataToSend": "autoMapInputData"
+          },
+          "type": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "position": [
+            1056,
+            1024
+          ],
+          "id": "fde1b8bd-2e46-4afa-97e4-4bb2e7432a83",
+          "name": "Log to automation_logs",
+          "credentials": {
+            "supabaseApi": {
+              "id": "LyBj0lWVGeJXEyUf",
+              "name": "[Client-Alpha] SUPABASE - MAIN"
+            }
+          }
+        },
+        {
+          "parameters": {},
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1,
+          "position": [
+            832,
+            1024
+          ],
+          "id": "7dcc7854-68b1-4577-bb94-29ad07107c7f",
+          "name": "Limit1"
+        }
+      ],
+      "connections": {
+        "Google Drive Trigger": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Download file": {
+          "main": [
+            [
+              {
+                "node": "Extract from File",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Switch": {
+          "main": [
+            [
+              {
+                "node": "OCR API - PDF",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "OCR API - Image",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "OCR API - Image",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract from File": {
+          "main": [
+            [
+              {
+                "node": "Switch",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Information Extractor",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Information Extractor": {
+          "main": [
+            [
+              {
+                "node": "Get row(s) in sheet",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Get a row",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Merge flags and output",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Append row in sheet": {
+          "main": [
+            [
+              {
+                "node": "Limit",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OCR API - Image": {
+          "main": [
+            [
+              {
+                "node": "Edit Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OCR API - PDF": {
+          "main": [
+            [
+              {
+                "node": "Aggregate data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Aggregate data": {
+          "main": [
+            [
+              {
+                "node": "Edit Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Edit Fields": {
+          "main": [
+            [
+              {
+                "node": "Information Extractor",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Split Out": {
+          "main": [
+            [
+              {
+                "node": "Add invoice to database",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Add invoice to database": {
+          "main": [
+            [
+              {
+                "node": "Append row in sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get a row": {
+          "main": [
+            [
+              {
+                "node": "Get first item1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get row(s) in sheet": {
+          "main": [
+            [
+              {
+                "node": "Get first item",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "DB flag": {
+          "main": [
+            [
+              {
+                "node": "Merge flags and output",
+                "type": "main",
+                "index": 2
+              }
+            ]
+          ]
+        },
+        "Sheet flag": {
+          "main": [
+            [
+              {
+                "node": "Merge flags and output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge flags and output": {
+          "main": [
+            [
+              {
+                "node": "Check if invoice already exists",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check if invoice already exists": {
+          "main": [
+            [
+              {
+                "node": "Split Out",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Delete a file",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Limit": {
+          "main": [
+            [
+              {
+                "node": "Move to Processed",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get first item": {
+          "main": [
+            [
+              {
+                "node": "Sheet flag",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get first item1": {
+          "main": [
+            [
+              {
+                "node": "DB flag",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Move to Processed": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Delete a file": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop Over Items": {
+          "main": [
+            [
+              {
+                "node": "Prepare for automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Download file",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare for automation_logs": {
+          "main": [
+            [
+              {
+                "node": "Limit1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Limit1": {
+          "main": [
+            [
+              {
+                "node": "Log to automation_logs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "authors": "MyAgency AI",
+      "name": "Version 84ada3fb",
+      "description": "",
+      "autosaved": true
+    },
+    "tags": []
+  }
+}

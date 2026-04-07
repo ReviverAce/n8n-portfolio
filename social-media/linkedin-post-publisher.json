@@ -1,0 +1,544 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.038Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "YiPRvx158LGYx6Gp",
+    "workflow_name": "[DEV] LinkedIn Post Publisher",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-14T07:51:35.000Z",
+    "createdAt": "2026-02-12T16:55:55.756Z",
+    "id": "YiPRvx158LGYx6Gp",
+    "name": "[DEV] LinkedIn Post Publisher",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "pub_schedule",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "30 8 * * 2,3,4"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "set_today",
+        "name": "1. Get Today's Date",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "today",
+                "name": "today",
+                "value": "={{ $now.format('yyyy-MM-dd') }}",
+                "type": "string"
+              },
+              {
+                "id": "dayOfWeek",
+                "name": "dayOfWeek",
+                "value": "={{ $now.weekday }}",
+                "type": "number"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "read_approved",
+        "name": "2. Read All Posts",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "operation": "read",
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "={{ $env.LINKEDIN_SHEET_URL }}"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Posts"
+          },
+          "range": "A:O",
+          "options": {}
+        }
+      },
+      {
+        "id": "filter_post",
+        "name": "3. Filter Today's Post",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "language": "javaScript",
+          "jsCode": "const allPosts = $input.all();\nconst today = $('1. Get Today\\'s Date').first().json.today;\n\nconst approvedPosts = allPosts.filter(p => p.json.status === 'approved');\n\nlet todayPost = approvedPosts.find(p => p.json.scheduled_date === today);\n\nif (!todayPost && approvedPosts.length > 0) {\n  todayPost = approvedPosts[0];\n}\n\nif (todayPost) {\n  return [{ json: { ...todayPost.json, hasPost: true } }];\n} else {\n  return [{ json: { hasPost: false, today: today } }];\n}"
+        }
+      },
+      {
+        "id": "has_post",
+        "name": "4. Has Approved Post?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "has_post_cond",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.hasPost }}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "no_post_alert",
+        "name": "No Post Alert",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          1100,
+          200
+        ],
+        "parameters": {
+          "operation": "send",
+          "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+          "subject": "=LinkedIn: No approved post for today ({{ $json.today }})",
+          "emailType": "html",
+          "message": "=<h2>No Approved Post Available</h2><p>The LinkedIn publisher ran at 08:30 but found no approved posts for today (<strong>{{ $json.today }}</strong>).</p><p>Please approve a draft in the content calendar if you want to post today.</p><p><a href=\"{{ $env.LINKEDIN_SHEET_URL }}\">Open Content Calendar</a></p>",
+          "options": {}
+        }
+      },
+      {
+        "id": "compose_post",
+        "name": "5. Compose Post Text",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          -100
+        ],
+        "parameters": {
+          "language": "javaScript",
+          "jsCode": "const post = $input.first().json;\n\nlet fullText = post.post_content || '';\n\nconst hashtags = post.hashtags || '';\nif (hashtags && !fullText.includes(hashtags)) {\n  fullText = fullText.trim() + '\\n\\n' + hashtags.trim();\n}\n\nif (fullText.length > 3000) {\n  fullText = fullText.substring(0, 2997) + '...';\n}\n\nreturn [{\n  json: {\n    ...post,\n    finalText: fullText,\n    charCount: fullText.length\n  }\n}];"
+        }
+      },
+      {
+        "id": "post_linkedin",
+        "name": "6. Post to LinkedIn",
+        "type": "n8n-nodes-base.linkedIn",
+        "typeVersion": 1,
+        "position": [
+          1320,
+          -100
+        ],
+        "parameters": {
+          "authentication": "communityManagement",
+          "resource": "post",
+          "operation": "create",
+          "postAs": "person",
+          "person": "",
+          "text": "={{ $json.finalText }}",
+          "shareMediaCategory": "NONE",
+          "additionalFields": {
+            "visibility": "PUBLIC"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "post_success_check",
+        "name": "7. Post Succeeded?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          1540,
+          -100
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "no_error",
+                "operator": {
+                  "type": "string",
+                  "operation": "notExists"
+                },
+                "leftValue": "={{ $json.error }}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "update_published",
+        "name": "8. Update Status: Published",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          1760,
+          -200
+        ],
+        "parameters": {
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "={{ $env.LINKEDIN_SHEET_URL }}"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Posts"
+          },
+          "range": "A:O",
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "id": "={{ $('5. Compose Post Text').first().json.id }}",
+              "status": "published",
+              "published_at": "={{ $now.toISO() }}",
+              "linkedin_post_id": "={{ $('6. Post to LinkedIn').first().json.id || '' }}"
+            },
+            "schema": [
+              {
+                "id": "id",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "id",
+                "defaultMatch": true,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "status"
+              },
+              {
+                "id": "published_at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "published_at"
+              },
+              {
+                "id": "linkedin_post_id",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "linkedin_post_id"
+              }
+            ],
+            "matchingColumns": [
+              "id"
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "update_failed",
+        "name": "9. Update Status: Failed",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          1760,
+          0
+        ],
+        "parameters": {
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "={{ $env.LINKEDIN_SHEET_URL }}"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Posts"
+          },
+          "range": "A:O",
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "id": "={{ $('5. Compose Post Text').first().json.id }}",
+              "status": "failed",
+              "error_message": "={{ $json.error ? $json.error.message : 'Unknown LinkedIn API error' }}"
+            },
+            "schema": [
+              {
+                "id": "id",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "id",
+                "defaultMatch": true,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "status"
+              },
+              {
+                "id": "error_message",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "error_message"
+              }
+            ],
+            "matchingColumns": [
+              "id"
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "success_email",
+        "name": "10. Send Success Email",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          1980,
+          -200
+        ],
+        "parameters": {
+          "operation": "send",
+          "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+          "subject": "=LinkedIn Post Published: {{ $('5. Compose Post Text').first().json.topic }}",
+          "emailType": "html",
+          "message": "=<h2>Post Published Successfully!</h2><p><strong>Topic:</strong> {{ $('5. Compose Post Text').first().json.topic }}</p><p><strong>Format:</strong> {{ $('5. Compose Post Text').first().json.post_format }}</p><p><strong>Characters:</strong> {{ $('5. Compose Post Text').first().json.charCount }}</p><hr><pre style=\"white-space:pre-wrap;\">{{ $('5. Compose Post Text').first().json.finalText }}</pre>",
+          "options": {}
+        }
+      },
+      {
+        "id": "failure_email",
+        "name": "11. Send Failure Alert",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          1980,
+          0
+        ],
+        "parameters": {
+          "operation": "send",
+          "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+          "subject": "=FAILED: LinkedIn Post - {{ $('5. Compose Post Text').first().json.topic }}",
+          "emailType": "html",
+          "message": "=<h2 style=\"color:red;\">LinkedIn Post Failed!</h2><p><strong>Post ID:</strong> {{ $('5. Compose Post Text').first().json.id }}</p><p><strong>Error:</strong> {{ $json.error ? $json.error.message : 'Unknown error' }}</p><p>The post status has been set to <code>failed</code>. Change it back to <code>approved</code> to retry.</p><p><a href=\"{{ $env.LINKEDIN_SHEET_URL }}\">Open Content Calendar</a></p>",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "1. Get Today's Date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Get Today's Date": {
+        "main": [
+          [
+            {
+              "node": "2. Read All Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Read All Posts": {
+        "main": [
+          [
+            {
+              "node": "3. Filter Today's Post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Filter Today's Post": {
+        "main": [
+          [
+            {
+              "node": "4. Has Approved Post?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Has Approved Post?": {
+        "main": [
+          [
+            {
+              "node": "5. Compose Post Text",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No Post Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Compose Post Text": {
+        "main": [
+          [
+            {
+              "node": "6. Post to LinkedIn",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Post to LinkedIn": {
+        "main": [
+          [
+            {
+              "node": "7. Post Succeeded?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Post Succeeded?": {
+        "main": [
+          [
+            {
+              "node": "8. Update Status: Published",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "9. Update Status: Failed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Update Status: Published": {
+        "main": [
+          [
+            {
+              "node": "10. Send Success Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. Update Status: Failed": {
+        "main": [
+          [
+            {
+              "node": "11. Send Failure Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Warsaw",
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all",
+      "saveManualExecutions": true,
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": null,
+    "versionId": "70f52e8f-e6ec-4f77-85a0-b399ab3e6c2e",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-02-14T07:51:35.460Z",
+        "createdAt": "2026-02-14T07:51:35.460Z",
+        "role": "workflow:owner",
+        "workflowId": "YiPRvx158LGYx6Gp",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

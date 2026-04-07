@@ -1,0 +1,371 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-01T13:16:47.326Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "wmbYhKHXUj9RZwpK",
+    "workflow_name": "[PROD] AGENCY - Backup Workflows to GitHub",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-03-01T13:15:27.230Z",
+    "createdAt": "2026-02-28T17:28:43.154Z",
+    "id": "wmbYhKHXUj9RZwpK",
+    "name": "[PROD] AGENCY - Backup Workflows to GitHub",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "node-manual-trigger",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          240,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 3 * * *"
+              }
+            ]
+          }
+        },
+        "id": "node-schedule-trigger",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          240,
+          480
+        ]
+      },
+      {
+        "parameters": {
+          "filters": {},
+          "requestOptions": {}
+        },
+        "id": "node-get-all-workflows",
+        "name": "Get All Workflows",
+        "type": "n8n-nodes-base.n8n",
+        "typeVersion": 1,
+        "position": [
+          480,
+          384
+        ],
+        "retryOnFail": true,
+        "alwaysOutputData": true,
+        "credentials": {
+          "n8nApi": {
+            "id": "nD9ybA2ms0TbxZJS",
+            "name": "[AGENCY] N8N - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "function sanitizeName(name) {\n  return name\n    .toLowerCase()\n    .replace(/\\[/g, \"\").replace(/\\]/g, \"\")\n    .replace(/[^a-z0-9]+/g, \"-\")\n    .replace(/^-+|-+$/g, \"\")\n    .substring(0, 80);\n}\n\nfunction getSubfolder(wf) {\n  if (wf.isArchived) return \"archived\";\n  if (wf.active) return \"active\";\n  return \"inactive\";\n}\n\nconst results = [];\nfor (const item of $input.all()) {\n  const wf = item.json;\n  const safeName = sanitizeName(wf.name);\n  const subfolder = getSubfolder(wf);\n  const filePath = subfolder + \"/\" + safeName + \"_\" + wf.id + \".json\";\n  const backupEnvelope = { _backup_meta: { backed_up_at: new Date().toISOString(), n8n_instance: \"https://your-instance.app.n8n.cloud\", workflow_id: wf.id, workflow_name: wf.name, active: wf.active, is_archived: wf.isArchived || false }, workflow: wf };\n  results.push({ json: { workflowId: wf.id, workflowName: wf.name, active: wf.active, isArchived: wf.isArchived || false, updatedAt: wf.updatedAt, subfolder: subfolder, filePath: filePath, fileContent: JSON.stringify(backupEnvelope, null, 2) } });\n}\nreturn results;"
+        },
+        "id": "node-prepare-workflow-data",
+        "name": "Prepare Workflow Data",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          384
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "node-loop-over-workflows",
+        "name": "Loop Over Workflows",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          960,
+          384
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "oAuth2",
+          "resource": "file",
+          "operation": "edit",
+          "owner": {
+            "__rl": true,
+            "value": "MyAgency",
+            "mode": "name"
+          },
+          "repository": {
+            "__rl": true,
+            "value": "myagency-n8n-backups",
+            "mode": "name"
+          },
+          "filePath": "={{ $json.filePath }}",
+          "binaryData": false,
+          "fileContent": "={{ $json.fileContent }}",
+          "commitMessage": "=chore: backup '{{ $json.workflowName }}' ({{ $json.workflowId }})",
+          "additionalParameters": {
+            "branch": {
+              "branch": "main"
+            }
+          }
+        },
+        "id": "node-github-create-or-update",
+        "name": "GitHub Create or Update File",
+        "type": "n8n-nodes-base.github",
+        "typeVersion": 1.1,
+        "position": [
+          1200,
+          512
+        ],
+        "retryOnFail": true,
+        "maxTries": 3,
+        "agencytBetweenTries": 5000,
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "githubOAuth2Api": {
+            "id": "mX5PDsQATn2j4l59",
+            "name": "[AGENCY] GITHUB - MAIN"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "amount": 2
+        },
+        "id": "node-agencyt-rate-limit",
+        "name": "Wait",
+        "type": "n8n-nodes-base.agencyt",
+        "typeVersion": 1.1,
+        "position": [
+          1440,
+          512
+        ],
+        "webhookId": "agencyt-rate-limit-webhook"
+      },
+      {
+        "parameters": {
+          "jsCode": "const allItems = $(\"Prepare Workflow Data\").all();\nconst active = allItems.filter(i => i.json.active && !i.json.isArchived);\nconst inactive = allItems.filter(i => !i.json.active && !i.json.isArchived);\nconst archived = allItems.filter(i => i.json.isArchived);\nconst index = { last_backup: new Date().toISOString(), n8n_instance: \"https://your-instance.app.n8n.cloud\", total_workflows: allItems.length, by_status: { active: active.length, inactive: inactive.length, archived: archived.length }, workflows: allItems.map(i => ({ id: i.json.workflowId, name: i.json.workflowName, file: i.json.filePath, status: i.json.subfolder, updated_at: i.json.updatedAt })).sort((a, b) => a.name.localeCompare(b.name)) };\nreturn [{ json: { filePath: \"_index.json\", fileContent: JSON.stringify(index, null, 2) } }];"
+        },
+        "id": "node-generate-index",
+        "name": "Generate Index",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          272
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "oAuth2",
+          "resource": "file",
+          "operation": "edit",
+          "owner": {
+            "__rl": true,
+            "value": "MyAgency",
+            "mode": "name"
+          },
+          "repository": {
+            "__rl": true,
+            "value": "myagency-n8n-backups",
+            "mode": "name"
+          },
+          "filePath": "_index.json",
+          "binaryData": false,
+          "fileContent": "={{ $json.fileContent }}",
+          "commitMessage": "=chore: update backup index ({{ $now.format('yyyy-MM-dd HH:mm') }} UTC)",
+          "additionalParameters": {
+            "branch": {
+              "branch": "main"
+            }
+          }
+        },
+        "id": "node-github-update-index",
+        "name": "GitHub Update Index",
+        "type": "n8n-nodes-base.github",
+        "typeVersion": 1.1,
+        "position": [
+          1440,
+          272
+        ],
+        "retryOnFail": true,
+        "maxTries": 3,
+        "agencytBetweenTries": 5000,
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "githubOAuth2Api": {
+            "id": "mX5PDsQATn2j4l59",
+            "name": "[AGENCY] GITHUB - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "summary-field",
+                "name": "summary",
+                "value": "=Backup complete. {{ $('Prepare Workflow Data').all().length }} workflows backed up to GitHub at {{ $now.toISO() }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "node-log-summary",
+        "name": "Log Summary",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1680,
+          272
+        ]
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get All Workflows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get All Workflows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get All Workflows": {
+        "main": [
+          [
+            {
+              "node": "Prepare Workflow Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Workflow Data": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Workflows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Workflows": {
+        "main": [
+          [
+            {
+              "node": "Generate Index",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "GitHub Create or Update File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GitHub Create or Update File": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Workflows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Index": {
+        "main": [
+          [
+            {
+              "node": "GitHub Update Index",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GitHub Update Index": {
+        "main": [
+          [
+            {
+              "node": "Log Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Warsaw",
+      "errorWorkflow": "qbOSaENwdtXKQhbo",
+      "saveManualExecutions": true,
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {},
+    "versionId": "40e0ee57-136a-4159-ab7d-85d6ba76e2e6",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-02-28T17:28:43.156Z",
+        "createdAt": "2026-02-28T17:28:43.156Z",
+        "role": "workflow:owner",
+        "workflowId": "wmbYhKHXUj9RZwpK",
+        "projectId": "o1WWPwmeHKhHFopU"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

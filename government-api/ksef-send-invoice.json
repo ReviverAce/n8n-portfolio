@@ -1,0 +1,367 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.029Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "VbIHpBW3xKfcm3lF",
+    "workflow_name": "[DEV] FIFO - KSEF SEND INVOICE",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-02T14:11:38.151Z",
+    "createdAt": "2026-02-01T14:08:30.826Z",
+    "id": "VbIHpBW3xKfcm3lF",
+    "name": "[DEV] FIFO - KSEF SEND INVOICE",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "ksef-send-invoice",
+          "options": {}
+        },
+        "id": "webhook",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "ksef-send-invoice"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "nip",
+                "name": "nip",
+                "value": "={{ $env.KSEF_NIP }}",
+                "type": "string"
+              },
+              {
+                "id": "ksefToken",
+                "name": "ksefToken",
+                "value": "={{ $env.KSEF_TOKEN }}",
+                "type": "string"
+              },
+              {
+                "id": "publicKey",
+                "name": "publicKey",
+                "value": "={{ $env.KSEF_PUBLIC_KEY }}",
+                "type": "string"
+              },
+              {
+                "id": "mfPublicKey",
+                "name": "mfPublicKey",
+                "value": "={{ $env.KSEF_MF_PUBLIC_KEY }}",
+                "type": "string"
+              },
+              {
+                "id": "invoiceData",
+                "name": "invoiceData",
+                "value": "={{ $json }}",
+                "type": "object"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "set_config",
+        "name": "Set Config",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "TFQksKZRnjCQNBqv",
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {}
+        },
+        "id": "auth",
+        "name": "Auth KSeF",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          448,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Dane faktury z webhooka\nconst invoice = $('Set Config').first().json.invoiceData;\n\n// Generowanie XML wg schematu FA(3)\nconst xml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Faktura xmlns=\"http://crd.gov.pl/wzor/2023/06/29/12648/\">\n  <Naglowek>\n    <KodFormularza kodSystemowy=\"FA (3)\" wersjaSchemy=\"1-0E\">FA</KodFormularza>\n    <WariantFormularza>3</WariantFormularza>\n    <DataWytworzeniaFa>${new Date().toISOString()}</DataWytworzeniaFa>\n    <SystemInfo>n8n-ksef-integration</SystemInfo>\n  </Naglowek>\n  <Podmiot1>\n    <DaneIdentyfikacyjne>\n      <NIP>${invoice.sellerNip || '0000000000'}</NIP>\n      <Nazwa>${invoice.sellerName || 'Sprzedawca'}</Nazwa>\n    </DaneIdentyfikacyjne>\n  </Podmiot1>\n  <Podmiot2>\n    <DaneIdentyfikacyjne>\n      <NIP>${invoice.buyerNip || '0000000000'}</NIP>\n      <Nazwa>${invoice.buyerName || 'Nabywca'}</Nazwa>\n    </DaneIdentyfikacyjne>\n  </Podmiot2>\n  <Fa>\n    <P_1>${invoice.issueDate || new Date().toISOString().split('T')[0]}</P_1>\n    <P_2>${invoice.invoiceNumber || 'FV/TEST/001'}</P_2>\n    <P_15>${invoice.grossAmount || 0}</P_15>\n    <RodzajFaktury>VAT</RodzajFaktury>\n  </Fa>\n</Faktura>`;\n\nreturn {\n  json: {\n    invoiceXml: xml,\n    accessToken: $('Auth KSeF').first().json.accessToken.token\n  }\n};"
+        },
+        "id": "generate_xml",
+        "name": "Generate Invoice XML",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api-test.ksef.mf.gov.pl/v2/sessions/online",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.accessToken }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {}
+            ]
+          },
+          "options": {}
+        },
+        "id": "open_session",
+        "name": "Open Session",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          880,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const crypto = require('crypto');\nconst invoiceXml = $('Generate Invoice XML').first().json.invoiceXml;\nconst sessionRef = $('Open Session').first().json.referenceNumber;\n\n// Generuj klucz AES i IV\nconst aesKey = crypto.randomBytes(32);\nconst iv = crypto.randomBytes(16);\n\n// Zaszyfruj fakture AES-256-CBC\nconst cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);\nlet encrypted = cipher.update(invoiceXml, 'utf8', 'base64');\nencrypted += cipher.final('base64');\n\n// Hasze\nconst invoiceHash = crypto.createHash('sha256').update(invoiceXml).digest('base64');\nconst encryptedHash = crypto.createHash('sha256').update(encrypted).digest('base64');\n\nreturn {\n  json: {\n    sessionReferenceNumber: sessionRef,\n    invoiceHash: invoiceHash,\n    invoiceSize: Buffer.byteLength(invoiceXml, 'utf8'),\n    encryptedInvoiceHash: encryptedHash,\n    encryptedInvoiceSize: encrypted.length,\n    encryptedInvoiceContent: encrypted,\n    accessToken: $('Generate Invoice XML').first().json.accessToken\n  }\n};"
+        },
+        "id": "encrypt_invoice",
+        "name": "Encrypt Invoice",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1104,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=https://api-test.ksef.mf.gov.pl/v2/sessions/online/{{ $json.sessionReferenceNumber }}/invoices",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.accessToken }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {}
+            ]
+          },
+          "options": {}
+        },
+        "id": "send_invoice",
+        "name": "Send Invoice",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1328,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "amount": 3
+        },
+        "id": "agencyt_processing",
+        "name": "Wait 3s",
+        "type": "n8n-nodes-base.agencyt",
+        "typeVersion": 1.1,
+        "position": [
+          1552,
+          0
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=https://api-test.ksef.mf.gov.pl/v2/sessions/online/{{ $('Encrypt Invoice').item.json.sessionReferenceNumber }}/close",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $('Encrypt Invoice').item.json.accessToken }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "close_session",
+        "name": "Close Session",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1760,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\n  \"success\": true,\n  \"invoiceReferenceNumber\": \"{{ $('Send Invoice').item.json.referenceNumber }}\",\n  \"sessionReferenceNumber\": \"{{ $('Encrypt Invoice').item.json.sessionReferenceNumber }}\"\n}",
+          "options": {}
+        },
+        "id": "respond",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1984,
+          0
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Set Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Config": {
+        "main": [
+          [
+            {
+              "node": "Auth KSeF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Auth KSeF": {
+        "main": [
+          [
+            {
+              "node": "Generate Invoice XML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Invoice XML": {
+        "main": [
+          [
+            {
+              "node": "Open Session",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Open Session": {
+        "main": [
+          [
+            {
+              "node": "Encrypt Invoice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Encrypt Invoice": {
+        "main": [
+          [
+            {
+              "node": "Send Invoice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Invoice": {
+        "main": [
+          [
+            {
+              "node": "Wait 3s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 3s": {
+        "main": [
+          [
+            {
+              "node": "Close Session",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Close Session": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {},
+    "versionId": "5d220aa6-d607-4fd3-b466-f9928cf682a2",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-02-01T14:19:51.718Z",
+        "createdAt": "2026-02-01T14:19:51.718Z",
+        "role": "workflow:owner",
+        "workflowId": "VbIHpBW3xKfcm3lF",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

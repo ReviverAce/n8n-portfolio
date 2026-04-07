@@ -1,0 +1,515 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-03T02:00:02.029Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "ehPQEJaj38OVE7zy",
+    "workflow_name": "[TechCorp AI Ideas] 1. AI ideas form assistant",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-01-16T07:53:31.000Z",
+    "createdAt": "2026-01-16T07:53:31.652Z",
+    "id": "ehPQEJaj38OVE7zy",
+    "name": "[TechCorp AI Ideas] 1. AI ideas form assistant",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $('Google chat webhook').item.json.body.sessionId }}",
+          "contextWindowLength": 15
+        },
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "position": [
+          -560,
+          320
+        ],
+        "id": "a2a87a4f-8b5d-4ae4-b347-05a43f4f89e2",
+        "name": "Simple Memory"
+      },
+      {
+        "parameters": {
+          "options": {
+            "safetySettings": {
+              "values": [
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "threshold": "BLOCK_NONE"
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "threshold": "BLOCK_NONE"
+                },
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "threshold": "BLOCK_NONE"
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "threshold": "BLOCK_NONE"
+                }
+              ]
+            }
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          -688,
+          320
+        ],
+        "id": "6a82c45a-ee6f-46c0-94e1-207a3576e5de",
+        "name": "Google Gemini Chat Model1"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.body.message }}",
+          "options": {
+            "systemMessage": "=### *🔹 CRITICAL INSTRUCTION: LANGUAGE PROTOCOL*\n1. *DETECT:* Analyze the language of the User's latest message.\n2. *MATCH:* Respond in the *exact same language* (English or Polish).\n3. *DEFAULT:* If unsure, use English.\n\n---\n\n### *🔹 SYSTEM ROLE & GOAL*\nYou are the *TechCorp AI Ideas Assistant*.\nYour goal is to interview the employee to structure their AI idea into specific fields, and then save it to the database using the available tool.\n\n*Current User:* {{ $json.body.displayName }} (Email: {{ $json.body.senderEmail }})\n\n*🚨 IMPORTANT: GREETING PROTOCOL*\n- You *ALREADY KNOW* the user's name ({{ $json.body.displayName }}).\n- *FIRST MESSAGE ONLY:* Greet them by name (e.g., \"Hi [Name]!\") and ask about their idea. Surrname is not relevant.\n- *SUBSEQUENT MESSAGES:* *DO NOT* greet them again. Be concise and go straight to the point.\n\n*Style:* Friendly, professional, concise (B2 level). Do not be a robot. Be a helpful colleague.\n*Rule:* Do NOT force the user to fill out a form. Have a conversation. Ask 1-2 questions at a time.\n\n---\n\n### *🔹 REQUIRED FIELDS*\nDuring the conversation, collect this info (in any order):\n\n1. *Idea name* – Short, specific title.\n2. *Idea Description* – 2–3 sentences (what it is, how it works, goal).\n3. *Target Persona / User* – Who is it for?\n4. *Problem Solved* – What pain point does it address?\n5. *Expected Business Value FOR TECHCORP* – Rate impact (Low, Medium, High) in:\n  1. Revenue increase\n  2. Cost reduction\n  3. User experience improvement\n  4. Efficiency gain\n6. *Value Explanation* – Short description of how value is created.\n7. *Effort/time to deliver* – Complexity estimate (Choose one: `Low (1–2 weeks)`, `Medium (2–6 weeks)`, `High (6+ weeks)`).\n8. *High-Level Design* – Key tech, integrations (e.g., OpenAI, n8n, Salesforce).\n9. *Dependencies / Risks / Notes* – Risks, blockers, questions.\n10. *Main Scope & Strategic Category* – Foundation / BAU, Company-wide, or Client-facing.\n11. *Idea Source* – Client feedback, Event, Market trend, Salesforce, or Brainstorming.\n\n---\n\n### *🔹 EXECUTION PROCESS*\n1. *Conversation Flow:*\n   - *IF* start: Greet by name and ask for idea.\n   - *IF* ongoing: *DO NOT GREET AGAIN.* Respond naturally.\n2. *Interview:* Ask questions to fill gaps. Suggest answers if needed.\n3. *Summary:* Present a clean summary list using *single stars* for bold.\n4. *Confirm:* Ask: \"Is this correct? Should I submit it?\"\n5. *Action:*\n   - IF User confirms -> *CALL TOOL \"Save AI Idea\"*.\n   - IF User does not confirm -> Ask what needs correcting.\n\n---\n\n### *🔹 TRIGGER PROTOCOL: WHEN TO SAVE (HIGHEST PRIORITY)*\n**CRITICAL RULE:** If the User confirms the summary (even with a simple \"tak\", \"yes\", \"ok\"), you must **STOP TALKING and IMMEDIATELY CALL THE TOOL.**\n\n*Do NOT say:* \"Okay, I will save it.\"\n*Do NOT say:* \"Great.\"\n*JUST CALL THE TOOL:* `Save AI Idea`\n\n*Trigger Words Dictionary (Treat these as COMMANDS to save):*\n- *PL:* \"tak\", \"ta\", \"no\", \"jasne\", \"pewnie\", \"dawaj\", \"jazda\", \"wysyłaj\", \"zapisz\", \"ok\", \"potwierdzam\", \"nie, możesz wysłać\"\n- *EN:* \"yes\", \"yep\", \"sure\", \"ok\", \"confirm\", \"send it\", \"save\", \"do it\", \"go\"\n\n*Logic Check:*\nUser says \"tak\" -> You detect confirmation -> **SILENTLY EXECUTE TOOL** -> Tool returns \"Success\" -> THEN you send the success message.\n\n---\n\n### *🔹 FORMATTING RULES (GOOGLE CHAT - MANDATORY)*\n- *NEVER use double stars (**) for bold.* Google Chat will not render it.\n- *ALWAYS use single stars (*) for bold.* Example: *This is bold*.\n- Use numbered lists (1., 2., 3.) for any lists.\n\n---\n\n### *🔹 TOOL RESPONSE PROTOCOL & VERIFICATION*\n*STEP 1:* Call the tool \"Save AI Idea\".\n*STEP 2:* *CRITICAL: ANALYZE THE TOOL OUTPUT.*\n   - IF output status is \"success\" -> *SUCCESS.*\n   - IF output status is \"error\" -> *FAILURE.*\n\n*STEP 3:* Reply based on outcome:\n\n*[CASE: SUCCESS]*\n   - *PL:* \"✅ *Sukces!* Twój pomysł *[Idea Name]* został zapisany. Dzięki!\"\n   - *EN:* \"✅ *Success!* Your idea *[Idea Name]* has been saved. Thanks!\"\n\n*[CASE: FAILURE]*\n   - *PL:* \"⚠️ Ups! Mam problemy z połączeniem. Prześlij pomysł tutaj: https://forms.gle/EXAMPLE\"\n   - *EN:* \"⚠️ Oops! Connection issues. Please use the backup form: https://forms.gle/EXAMPLE\""
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          -640,
+          96
+        ],
+        "id": "c1f2552f-2411-4de3-94a6-7e90916c3c66",
+        "name": "AI Ideas assistant"
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "PORTFOLIOexampeGoogleChatToN8nConnection",
+          "authentication": "headerAuth",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -912,
+          96
+        ],
+        "id": "3d62280d-0f39-4184-a927-0b490d27efbc",
+        "name": "Google chat webhook",
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      },
+      {
+        "parameters": {
+          "description": "Call this tool when you gathered all the answers and user confirmed that he is ready to submit the data to the spreadsheet.",
+          "workflowId": {
+            "__rl": true,
+            "value": "5osy1PV8Klcp9W4X",
+            "mode": "list",
+            "cachedResultUrl": "/workflow/5osy1PV8Klcp9W4X",
+            "cachedResultName": "[TechCorp AI Ideas] 1.1 Add Idea row to AI IDEAS database"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Idea name": "={{ $fromAI(\"ideaName\") }}",
+              "Timestamp": "={{ $now }}",
+              "Email Address": "={{ $('Google chat webhook').item.json.body.senderEmail }}",
+              "Idea Description": "={{ $fromAI(\"ideaDescription\") }}",
+              "Target Persona / User": "={{ $fromAI(\"targetPersona\") }}",
+              "Status": "New",
+              "Idea Source": "={{ $fromAI(\"source\") }}",
+              "Scope of impact": "={{ $fromAI(\"scope\") }}",
+              "Dependencies / Risks / Notes": "={{ $fromAI(\"risks\") }}",
+              "High-Level Design": "={{ $fromAI(\"design\") }}",
+              "Effort/time to deliver": "={{ $fromAI(\"effort\") }}",
+              "Value Explanation": "={{ $fromAI(\"valueExplanation\") }}",
+              "Expected Business Value [Efficiency gain]": "={{ $fromAI(\"val_efficiency\") }}",
+              "Expected Business Value [User experience improvement]": "={{ $fromAI(\"val_ux\") }}",
+              "Expected Business Value [Cost reduction]": "={{ $fromAI(\"val_cost\") }}",
+              "Expected Business Value [Revenue increase]": "={{ $fromAI(\"val_revenue\") }}",
+              "Problem Solved": "={{ $fromAI(\"problemSolved\") }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "Timestamp",
+                "displayName": "Timestamp",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Email Address",
+                "displayName": "Email Address",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Idea name",
+                "displayName": "Idea name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Idea Description",
+                "displayName": "Idea Description",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Target Persona / User",
+                "displayName": "Target Persona / User",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Problem Solved",
+                "displayName": "Problem Solved",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Expected Business Value [Revenue increase]",
+                "displayName": "Expected Business Value [Revenue increase]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Expected Business Value [Cost reduction]",
+                "displayName": "Expected Business Value [Cost reduction]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Expected Business Value [User experience improvement]",
+                "displayName": "Expected Business Value [User experience improvement]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Expected Business Value [Efficiency gain]",
+                "displayName": "Expected Business Value [Efficiency gain]",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Value Explanation",
+                "displayName": "Value Explanation",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Effort/time to deliver",
+                "displayName": "Effort/time to deliver",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "High-Level Design",
+                "displayName": "High-Level Design",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Dependencies / Risks / Notes",
+                "displayName": "Dependencies / Risks / Notes",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Scope of impact",
+                "displayName": "Scope of impact",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Idea Source",
+                "displayName": "Idea Source",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "Status",
+                "displayName": "Status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          -432,
+          320
+        ],
+        "id": "d46dbe57-d8de-40ba-bb5e-938ee4697904",
+        "name": "Save AI Idea"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "f1f3fc9d-7d6d-47a5-bf9b-81b50594c3e5",
+                "leftValue": "={{ $json.output }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "empty",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -224,
+          96
+        ],
+        "id": "29b2b0c5-ba00-4d3a-95c9-9a7a56c43234",
+        "name": "Empty output?"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "562c6562-db96-44c4-b07b-a1148cb1e70d",
+                "name": "output",
+                "value": "={{\n(() => {\n  // 1. Pobierz wiadomość użytkownika\n  const webhookData = $('Google chat webhook').first();\n  const msg = webhookData && webhookData.json.body && webhookData.json.body.message \n              ? webhookData.json.body.message.toLowerCase().trim() \n              : \"\";\n\n  // 2. Wykryj język\n  const isPolish = /[ąęśćżźłóń]/.test(msg) || [\"tak\", \"nie\", \"hej\", \"czesc\", \"dobra\", \"jasne\", \"wyslij\", \"dawaj\", \"pomysl\"].some(word => msg.includes(word));\n\n  // 3. Słowa kluczowe sugerujące chęć zapisu\n  const submissionKeywords = [\"tak\", \"yes\", \"potwierdzam\", \"confirm\", \"wysyłaj\", \"send\", \"zapisz\", \"save\", \"ok\", \"dobra\", \"jasne\", \"sure\", \"do it\"];\n  const isSubmissionAttempt = submissionKeywords.some(keyword => msg.includes(keyword));\n\n  // 4. Link do formularza (Plan B - jako ostateczność)\n  const formLink = \"https://forms.gle/EXAMPLE\";\n\n  // --- NOWA LOGIKA ---\n\n  // SCENARIUSZ A: User chciał zapisać, ale Agent się zawiesił.\n  // Zamiast błędu, prosimy o silniejszą komendę (\"Wyślij\").\n  if (isSubmissionAttempt) {\n      if (isPolish) {\n         return `⚠️ Zrozumiałem Twoje potwierdzenie, ale coś zablokowało mi dostęp do bazy (niejednoznaczny sygnał). 🔌\\n\\nSpróbujmy to przepchnąć – napisz proszę krótko: **\"Wyślij\"** lub **\"Zapisz\"**.\\n\\n(Jeśli to nadal nie zadziała, wtedy użyj tego formularza: ${formLink})`;\n      } else {\n         return `⚠️ I understood your confirmation, but the connection to the database stalled (ambiguous signal). 🔌\\n\\nLet's try to force it – please type: **\"Send\"** or **\"Save\"**.\\n\\n(If that still doesn't work, use this backup form: ${formLink})`;\n      }\n  }\n\n  // SCENARIUSZ B: Rozmowa o czymś innym + zawieszenie Agenta\n  else {\n      if (isPolish) {\n         return \"⚠️ Ups, coś mi przerwało proces myślowy (otrzymałem pustą odpowiedź). 🧠\\nCzy mógłbyś proszę powtórzyć lub przeformułować ostatnią wiadomość?\";\n      } else {\n         return \"⚠️ Oops, I lost my train of thought (received an empty response). 🧠\\nCould you please repeat or rephrase your last message?\";\n      }\n  }\n})()\n}}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          0,
+          0
+        ],
+        "id": "e64a5a59-e568-41dd-86b9-05f6c31fde13",
+        "name": "Set output"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{\n{\n  \"output\": $json.output\n}\n}}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          0,
+          192
+        ],
+        "id": "e75720bf-1fb4-4513-964a-38f0014729ac",
+        "name": "Respond to google chat - happy path"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{\n{\n  \"output\": $json.output\n}\n}}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          224,
+          0
+        ],
+        "id": "828cfe9a-1f79-4a34-9869-9520c9bd0571",
+        "name": "Respond to google chat - sad path"
+      }
+    ],
+    "connections": {
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Ideas assistant",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Ideas assistant",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Ideas assistant": {
+        "main": [
+          [
+            {
+              "node": "Empty output?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google chat webhook": {
+        "main": [
+          [
+            {
+              "node": "AI Ideas assistant",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save AI Idea": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Ideas assistant",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Empty output?": {
+        "main": [
+          [
+            {
+              "node": "Set output",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond to google chat - happy path",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set output": {
+        "main": [
+          [
+            {
+              "node": "Respond to google chat - sad path",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {},
+    "versionId": "25792082-0925-4498-8381-c3e0dde60c70",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-01-16T07:53:31.657Z",
+        "createdAt": "2026-01-16T07:53:31.657Z",
+        "role": "workflow:owner",
+        "workflowId": "ehPQEJaj38OVE7zy",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

@@ -1,0 +1,857 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.001Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "DR5yFwrBmGxVdbFr",
+    "workflow_name": "[DEV] LinkedIn Topic Discovery",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-03-01T14:10:10.100Z",
+    "createdAt": "2026-02-28T16:20:24.080Z",
+    "id": "DR5yFwrBmGxVdbFr",
+    "name": "[DEV] LinkedIn Topic Discovery",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "triggerAtHour": 18
+              }
+            ]
+          }
+        },
+        "id": "schedule_trigger",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          64
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+          "options": {}
+        },
+        "id": "rss_verge",
+        "name": "2a. RSS - The Verge AI",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "typeVersion": 1,
+        "position": [
+          224,
+          -608
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+          "options": {}
+        },
+        "id": "rss_mit",
+        "name": "2b. RSS - MIT Tech Review",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "typeVersion": 1,
+        "position": [
+          224,
+          -416
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+          "options": {}
+        },
+        "id": "rss_tc",
+        "name": "2c. RSS - TechCrunch AI",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "typeVersion": 1,
+        "position": [
+          224,
+          -224
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "https://blog.n8n.io/rss/",
+          "options": {}
+        },
+        "id": "rss_n8n",
+        "name": "2d. RSS - n8n Blog",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "typeVersion": 1,
+        "position": [
+          224,
+          -32
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "resource": "all",
+          "limit": 30,
+          "additionalFields": {
+            "keyword": "AI",
+            "tags": [
+              "front_page"
+            ]
+          }
+        },
+        "id": "hn",
+        "name": "2e. Hacker News",
+        "type": "n8n-nodes-base.hackerNews",
+        "typeVersion": 1,
+        "position": [
+          224,
+          160
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "https://www.reddit.com/r/artificial/top.json?t=week&limit=15",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "n8n-linkedin-discovery/1.0"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "reddit_ai",
+        "name": "2f. Reddit r/artificial",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          224,
+          352
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "https://www.reddit.com/r/n8n/top.json?t=week&limit=10",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "n8n-linkedin-discovery/1.0"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "reddit_n8n",
+        "name": "2g. Reddit r/n8n",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          224,
+          544
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "https://importai.substack.com/feed",
+          "options": {}
+        },
+        "id": "rss_importai",
+        "name": "2h. RSS - Import AI",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "typeVersion": 1,
+        "position": [
+          224,
+          736
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {},
+        "id": "merge_1a",
+        "name": "3a. Merge RSS 1",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          448,
+          -512
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "merge_1b",
+        "name": "3b. Merge RSS 2",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          448,
+          -128
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "merge_1c",
+        "name": "3c. Merge Non-RSS 1",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          448,
+          256
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "merge_1d",
+        "name": "3d. Merge Non-RSS 2",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          448,
+          640
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "merge_2a",
+        "name": "3e. Merge All RSS",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          672,
+          -320
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "merge_2b",
+        "name": "3f. Merge All Non-RSS",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          672,
+          448
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "merge_final",
+        "name": "3g. Merge Everything",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          896,
+          64
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);\nconst articles = [];\n\nfor (const item of items) {\n  const j = item.json;\n\n  if (j.data && j.data.children) {\n    for (const child of j.data.children) {\n      const d = child.data;\n      if (d && d.title) {\n        articles.push({\n          title: d.title,\n          summary: (d.selftext || '').substring(0, 300),\n          link: d.url || 'https://reddit.com' + d.permalink,\n          pubDate: new Date((d.created_utc || 0) * 1000).toISOString(),\n          source: 'Reddit r/' + d.subreddit,\n          upvotes: d.ups || 0,\n          comments: d.num_comments || 0\n        });\n      }\n    }\n    continue;\n  }\n\n  if (j.objectID || (j.url && j.points !== undefined)) {\n    articles.push({\n      title: j.title || '',\n      summary: '',\n      link: j.url || 'https://news.ycombinator.com/item?id=' + (j.objectID || j.id),\n      pubDate: j.created_at || new Date().toISOString(),\n      source: 'Hacker News',\n      upvotes: j.points || 0,\n      comments: j.num_comments || j.descendants || 0\n    });\n    continue;\n  }\n\n  articles.push({\n    title: j.title || '',\n    summary: (j.contentSnippet || j.description || j.content || '').substring(0, 300),\n    link: j.link || '',\n    pubDate: j.pubDate || j.isoDate || new Date().toISOString(),\n    source: j.creator || 'RSS',\n    upvotes: 0,\n    comments: 0\n  });\n}\n\nconst seen = new Set();\nconst unique = articles.filter(a => {\n  if (!a.title) return false;\n  const key = a.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);\n  if (seen.has(key)) return false;\n  seen.add(key);\n  try { return new Date(a.pubDate) >= sevenDaysAgo; }\n  catch { return true; }\n});\n\nreturn unique.map(a => ({ json: a }));"
+        },
+        "id": "normalize",
+        "name": "4. Normalize Sources",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          64
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const articles = $input.all().map(i => i.json);\n\nconst brandKeywords = [\n  'automation', 'n8n', 'workflow', 'ai agent', 'no-code', 'low-code',\n  'llm', 'gpt', 'chatbot', 'api', 'integration', 'saas', 'productivity',\n  'ai tool', 'machine learning', 'generative ai', 'prompt', 'rag',\n  'langchain', 'openai', 'anthropic', 'claude', 'gemini', 'copilot'\n];\n\nconst sourceWeights = {\n  'mit technology review': 20,\n  'hacker news': 18,\n  'n8n': 19,\n  'reddit r/n8n': 20,\n  'techcrunch': 16,\n  'the verge': 14,\n  'reddit r/artificial': 15,\n  'import ai': 17\n};\n\nconst now = new Date();\n\nconst scored = articles.map(a => {\n  let score = 0;\n  const ageHours = (now - new Date(a.pubDate)) / (1000 * 60 * 60);\n  score += Math.max(0, Math.round(30 - (ageHours / 168) * 30));\n  const srcLower = (a.source || '').toLowerCase();\n  const sourceKey = Object.keys(sourceWeights).find(k => srcLower.includes(k));\n  score += sourceKey ? sourceWeights[sourceKey] : 10;\n  const textLower = (a.title + ' ' + a.summary).toLowerCase();\n  const matchCount = brandKeywords.filter(kw => textLower.includes(kw)).length;\n  score += Math.min(25, matchCount * 5);\n  if (a.upvotes > 0) {\n    score += Math.min(10, Math.round(Math.log10(a.upvotes + 1) * 3));\n  }\n  return { ...a, score: Math.min(100, score) };\n});\n\nscored.sort((a, b) => b.score - a.score);\nreturn scored.slice(0, 12).map(a => ({ json: a }));"
+        },
+        "id": "score",
+        "name": "5. Score & Rank Topics",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1344,
+          64
+        ]
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit",
+            "mode": "url"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Topics",
+            "mode": "name"
+          },
+          "options": {}
+        },
+        "id": "read_prev",
+        "name": "6. Get Previous Topics",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1568,
+          64
+        ],
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "mta4sn91Y3TsPhPn",
+            "name": "[AGENCY] SHEETS- MAIN"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const candidates = $('5. Score & Rank Topics').all().map(i => i.json);\nconst previousTopics = $('6. Get Previous Topics').all();\n\nconst fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);\nconst recentTitles = previousTopics\n  .filter(p => {\n    try { return new Date(p.json.discovered_at) >= fourWeeksAgo; }\n    catch { return false; }\n  })\n  .map(p => (p.json.title || '').toLowerCase());\n\nconst fresh = candidates.filter(a => {\n  const titleLower = a.title.toLowerCase();\n  return !recentTitles.some(t =>\n    t && (titleLower.includes(t.substring(0, 30)) || t.includes(titleLower.substring(0, 30)))\n  );\n});\n\nif (fresh.length === 0) {\n  return [{ json: { hasTopics: false, topics: [] } }];\n}\n\nreturn [{ json: { hasTopics: true, topics: fresh.slice(0, 7) } }];"
+        },
+        "id": "filter",
+        "name": "7. Filter Against History",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1792,
+          64
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "has_topics_cond",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.hasTopics }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "has_topics",
+        "name": "8. Has Topics?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2016,
+          64
+        ]
+      },
+      {
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "gpt-4o-mini"
+          },
+          "messages": {
+            "values": [
+              {
+                "content": "=Analyze these trending topics and suggest LinkedIn post angles for each:\n\n{{ JSON.stringify($json.topics, null, 2) }}"
+              }
+            ]
+          },
+          "options": {
+            "maxTokens": 2000,
+            "temperature": 0.6
+          }
+        },
+        "id": "ai_enrich",
+        "name": "9. AI Topic Enrichment",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 1.8,
+        "position": [
+          2240,
+          -32
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "0PmreRG9VqAnmyU6",
+            "name": "[AGENCY] OPENAI - MAIN"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const aiResponse = $input.first().json;\nconst originalData = $('7. Filter Against History').first().json;\nconst originalTopics = originalData.topics;\n\nlet enriched;\ntry {\n  const text = aiResponse.text || aiResponse.content || aiResponse.message || JSON.stringify(aiResponse);\n  const jsonMatch = text.match(/\\[[\\s\\S]*\\]/);\n  enriched = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(text);\n} catch (err) {\n  enriched = originalTopics.map(t => ({\n    title: t.title,\n    linkedin_angle: 'Trending AI/automation topic worth discussing',\n    suggested_hook: t.title,\n    suggested_format: 'opinion',\n    relevance_tag: 'Industry News'\n  }));\n}\n\nconst now = new Date();\nconst startOfYear = new Date(now.getFullYear(), 0, 1);\nconst weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);\n\nreturn originalTopics.slice(0, enriched.length).map((topic, i) => {\n  const ai = enriched[i] || {};\n  const fmt = ai.suggested_format || 'opinion';\n\n  const geminiPrompt = 'Write a LinkedIn post about: ' + topic.title + '\\n\\n'\n    + 'Source: ' + (topic.link || '') + '\\n\\n'\n    + 'Context: ' + (topic.summary || 'See source article for details.') + '\\n\\n'\n    + 'Angle: ' + (ai.linkedin_angle || 'Share your professional perspective') + '\\n'\n    + 'Format: ' + fmt;\n\n  return {\n    json: {\n      topic_id: 'TD-' + now.getFullYear() + '-W' + String(weekNumber).padStart(2, '0') + '-' + (i + 1),\n      status: 'new',\n      discovered_at: now.toISOString(),\n      week_number: weekNumber,\n      title: topic.title,\n      source: topic.source,\n      source_url: topic.link,\n      summary: (topic.summary || '').substring(0, 300),\n      linkedin_angle: ai.linkedin_angle || '',\n      suggested_hook: ai.suggested_hook || '',\n      suggested_format: fmt,\n      relevance_tag: ai.relevance_tag || 'Industry News',\n      score: topic.score,\n      gemini_prompt: geminiPrompt,\n      notes: ''\n    }\n  };\n});"
+        },
+        "id": "parse_build",
+        "name": "10. Parse & Build Prompts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2592,
+          -32
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "=https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?gid=0#gid=0",
+            "mode": "url"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Topics"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "save_topics",
+        "name": "11. Save Topics to Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          2816,
+          -32
+        ],
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "cGJ5fju0HEKfZT5V",
+            "name": "[AGENCY] SHEETS - MAIN"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst weekNum = items[0].json.week_number;\n\nconst cards = items.map((item, i) => {\n  const t = item.json;\n  const badgeColor = t.score >= 70 ? '#e74c3c' : t.score >= 50 ? '#f39c12' : '#3498db';\n  const badge = t.score >= 70 ? 'HOT' : t.score >= 50 ? 'Strong' : 'Worth noting';\n  const fmtEmoji = { tip: '💡', story: '📖', opinion: '🎯', hot_take: '🔥', listicle: '📋' };\n\n  return '<div style=\"background:white;border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin:12px 20px;\">'\n    + '<div style=\"margin-bottom:8px;\"><span style=\"background:' + badgeColor + ';color:white;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:bold;\">#' + (i+1) + ' | ' + badge + ' (' + t.score + '/100)</span>'\n    + '<span style=\"float:right;font-size:12px;color:#888;\">' + t.source + '</span></div>'\n    + '<h3 style=\"margin:0 0 8px;color:#333;font-size:16px;\">' + t.title + '</h3>'\n    + '<p style=\"color:#555;font-size:14px;margin:0 0 8px;line-height:1.4;\">' + t.linkedin_angle + '</p>'\n    + '<div style=\"font-size:13px;color:#888;margin-bottom:12px;\">' + (fmtEmoji[t.suggested_format] || '📝') + ' <strong>' + t.suggested_format + '</strong> | 🏷️ ' + t.relevance_tag + ' | <a href=\"' + t.source_url + '\" style=\"color:#0077B5;\">Read source</a></div>'\n    + '<div style=\"background:#f8f9fa;border:1px solid #e0e0e0;border-radius:4px;padding:12px;\">'\n    + '<div style=\"font-size:13px;font-weight:bold;color:#0077B5;margin-bottom:8px;\">📋 Gem Brief (copy & paste):</div>'\n    + '<pre style=\"white-space:pre-wrap;font-size:12px;line-height:1.5;font-family:Courier New,monospace;margin:0;color:#333;\">' + t.gemini_prompt + '</pre>'\n    + '</div></div>';\n}).join('');\n\nreturn [{ json: { topicCardsHtml: cards, weekNumber: weekNum, topicCount: items.length } }];"
+        },
+        "id": "build_email",
+        "name": "11b. Build Email HTML",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3040,
+          -32
+        ]
+      },
+      {
+        "parameters": {
+          "sendTo": "=contact@example-agency.com",
+          "subject": "=LinkedIn Topic Brief - Week {{ $json.weekNumber }} ({{ $json.topicCount }} topics)",
+          "message": "=<div style=\"font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;max-width:700px;margin:0 auto;\"><div style=\"background:#0077B5;color:white;padding:20px;border-radius:8px 8px 0 0;\"><h1 style=\"margin:0;font-size:22px;\">Weekly LinkedIn Topic Brief</h1><p style=\"margin:8px 0 0;opacity:0.9;\">Week {{ $json.weekNumber }} | {{ $json.topicCount }} curated topics</p></div><div style=\"padding:16px 20px;background:#f0f7fb;border-bottom:1px solid #e0e0e0;\"><p style=\"margin:0;color:#555;font-size:14px;\"><strong>Your workflow:</strong> Pick topic → Copy Gemini prompt → Paste to Gem → Refine → Paste to Posts sheet as approved</p></div>{{ $json.topicCardsHtml }}<div style=\"background:#f8f9fa;border-radius:0 0 8px 8px;padding:16px 20px;text-align:center;\"><a href=\"https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?gid=0#gid=0\" style=\"background:#0077B5;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;font-weight:bold;\">Open Content Calendar</a></div></div>",
+          "options": {}
+        },
+        "id": "send_email",
+        "name": "12. Send Topic Brief",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "position": [
+          3264,
+          -32
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "zMZyza6oYGGnXAhE",
+            "name": "[AGENCY] GMAIL - MAIN"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sendTo": "=contact@example-agency.com",
+          "subject": "LinkedIn Topic Discovery: No fresh topics found this week",
+          "message": "=<h2>No Fresh Topics Found</h2><p>The LinkedIn Topic Discovery workflow could not find enough fresh AI/automation topics this week.</p><p><a href=\"https://docs.google.com/spreadsheets/d/EXAMPLE_SPREADSHEET_ID/edit?gid=0#gid=0\" >Open Content Calendar</a></p>",
+          "options": {}
+        },
+        "id": "no_topics",
+        "name": "13. No Topics Alert",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "position": [
+          2304,
+          160
+        ],
+        "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "zMZyza6oYGGnXAhE",
+            "name": "[AGENCY] GMAIL - MAIN"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "2a. RSS - The Verge AI",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2b. RSS - MIT Tech Review",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2c. RSS - TechCrunch AI",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2d. RSS - n8n Blog",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2e. Hacker News",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2f. Reddit r/artificial",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2g. Reddit r/n8n",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2h. RSS - Import AI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2a. RSS - The Verge AI": {
+        "main": [
+          [
+            {
+              "node": "3a. Merge RSS 1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2b. RSS - MIT Tech Review": {
+        "main": [
+          [
+            {
+              "node": "3a. Merge RSS 1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "2c. RSS - TechCrunch AI": {
+        "main": [
+          [
+            {
+              "node": "3b. Merge RSS 2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2d. RSS - n8n Blog": {
+        "main": [
+          [
+            {
+              "node": "3b. Merge RSS 2",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "2e. Hacker News": {
+        "main": [
+          [
+            {
+              "node": "3c. Merge Non-RSS 1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2f. Reddit r/artificial": {
+        "main": [
+          [
+            {
+              "node": "3c. Merge Non-RSS 1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "2g. Reddit r/n8n": {
+        "main": [
+          [
+            {
+              "node": "3d. Merge Non-RSS 2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2h. RSS - Import AI": {
+        "main": [
+          [
+            {
+              "node": "3d. Merge Non-RSS 2",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "3a. Merge RSS 1": {
+        "main": [
+          [
+            {
+              "node": "3e. Merge All RSS",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3b. Merge RSS 2": {
+        "main": [
+          [
+            {
+              "node": "3e. Merge All RSS",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "3c. Merge Non-RSS 1": {
+        "main": [
+          [
+            {
+              "node": "3f. Merge All Non-RSS",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3d. Merge Non-RSS 2": {
+        "main": [
+          [
+            {
+              "node": "3f. Merge All Non-RSS",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "3e. Merge All RSS": {
+        "main": [
+          [
+            {
+              "node": "3g. Merge Everything",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3f. Merge All Non-RSS": {
+        "main": [
+          [
+            {
+              "node": "3g. Merge Everything",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "3g. Merge Everything": {
+        "main": [
+          [
+            {
+              "node": "4. Normalize Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Normalize Sources": {
+        "main": [
+          [
+            {
+              "node": "5. Score & Rank Topics",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Score & Rank Topics": {
+        "main": [
+          [
+            {
+              "node": "6. Get Previous Topics",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Get Previous Topics": {
+        "main": [
+          [
+            {
+              "node": "7. Filter Against History",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Filter Against History": {
+        "main": [
+          [
+            {
+              "node": "8. Has Topics?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Has Topics?": {
+        "main": [
+          [
+            {
+              "node": "9. AI Topic Enrichment",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "13. No Topics Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. AI Topic Enrichment": {
+        "main": [
+          [
+            {
+              "node": "10. Parse & Build Prompts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. Parse & Build Prompts": {
+        "main": [
+          [
+            {
+              "node": "11. Save Topics to Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. Save Topics to Sheets": {
+        "main": [
+          [
+            {
+              "node": "11b. Build Email HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11b. Build Email HTML": {
+        "main": [
+          [
+            {
+              "node": "12. Send Topic Brief",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Warsaw",
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all",
+      "saveManualExecutions": true,
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "b3dcb44d-a2e0-4854-b4ca-1cd25b28a84e",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-02-28T16:53:24.937Z",
+        "createdAt": "2026-02-28T16:53:24.937Z",
+        "role": "workflow:owner",
+        "workflowId": "DR5yFwrBmGxVdbFr",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}

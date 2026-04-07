@@ -1,0 +1,247 @@
+{
+  "_backup_meta": {
+    "backed_up_at": "2026-03-29T01:00:02.024Z",
+    "n8n_instance": "https://your-instance.app.n8n.cloud",
+    "workflow_id": "TFQksKZRnjCQNBqv",
+    "workflow_name": "[DEV] FIFO - KSEF AUTH",
+    "active": false,
+    "is_archived": false
+  },
+  "workflow": {
+    "updatedAt": "2026-02-01T14:30:04.180Z",
+    "createdAt": "2026-02-01T14:06:01.203Z",
+    "id": "TFQksKZRnjCQNBqv",
+    "name": "[DEV] FIFO - KSEF AUTH",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "inputSource": "passthrough"
+        }
+      },
+      {
+        "id": "get_challenge",
+        "name": "1. Get Challenge",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api-test.ksef.mf.gov.pl/v2/auth/challenge",
+          "options": {}
+        }
+      },
+      {
+        "id": "encrypt_token",
+        "name": "2. Encrypt Token",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "language": "javaScript",
+          "jsCode": "// Pobierz challenge z poprzedniego kroku\nconst challenge = $input.first().json.challenge;\nconst timestampMs = $input.first().json.timestampMs;\n\n// Pobierz token KSeF z danych wejściowych sub-workflow\nconst ksefToken = $('Execute Workflow Trigger').first().json.ksefToken;\nconst nip = $('Execute Workflow Trigger').first().json.nip;\nconst publicKey = $('Execute Workflow Trigger').first().json.publicKey;\n\n// Sformatuj token z timestamp\nconst tokenWithTimestamp = `${ksefToken}|${timestampMs}`;\n\n// Szyfrowanie RSA-OAEP\nconst crypto = require('crypto');\nconst encrypted = crypto.publicEncrypt(\n  {\n    key: publicKey,\n    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,\n    oaepHash: 'sha256'\n  },\n  Buffer.from(tokenWithTimestamp)\n);\n\nreturn {\n  json: {\n    challenge: challenge,\n    encryptedToken: encrypted.toString('base64'),\n    nip: nip,\n    timestampMs: timestampMs\n  }\n};"
+        }
+      },
+      {
+        "id": "auth_token",
+        "name": "3. Auth with Token",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api-test.ksef.mf.gov.pl/v2/auth/ksef-token",
+          "sendBody": true,
+          "contentType": "json",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "challenge",
+                "value": "={{ $json.challenge }}"
+              },
+              {
+                "name": "contextIdentifier",
+                "value": "={{ { type: 'Nip', value: $json.nip } }}"
+              },
+              {
+                "name": "encryptedToken",
+                "value": "={{ $json.encryptedToken }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "agencyt_status",
+        "name": "4. Wait 2s",
+        "type": "n8n-nodes-base.agencyt",
+        "typeVersion": 1.1,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "amount": 2,
+          "unit": "seconds"
+        }
+      },
+      {
+        "id": "check_status",
+        "name": "5. Check Auth Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1100,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "=https://api-test.ksef.mf.gov.pl/v2/auth/{{ $('3. Auth with Token').item.json.referenceNumber }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $('3. Auth with Token').item.json.authenticationToken.token }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "redeem_tokens",
+        "name": "6. Redeem Access Tokens",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1320,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api-test.ksef.mf.gov.pl/v2/auth/token/redeem",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $('3. Auth with Token').item.json.authenticationToken.token }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "1. Get Challenge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Get Challenge": {
+        "main": [
+          [
+            {
+              "node": "2. Encrypt Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Encrypt Token": {
+        "main": [
+          [
+            {
+              "node": "3. Auth with Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Auth with Token": {
+        "main": [
+          [
+            {
+              "node": "4. Wait 2s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Wait 2s": {
+        "main": [
+          [
+            {
+              "node": "5. Check Auth Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Check Auth Status": {
+        "main": [
+          [
+            {
+              "node": "6. Redeem Access Tokens",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": null,
+    "versionId": "a52b02d9-8703-4b7d-a507-5b40b5135aeb",
+    "activeVersionId": null,
+    "triggerCount": 0,
+    "shared": [
+      {
+        "updatedAt": "2026-02-01T14:20:03.404Z",
+        "createdAt": "2026-02-01T14:20:03.404Z",
+        "role": "workflow:owner",
+        "workflowId": "TFQksKZRnjCQNBqv",
+        "projectId": "2jlhRfElT6lOiXuI"
+      }
+    ],
+    "activeVersion": null,
+    "tags": []
+  }
+}
